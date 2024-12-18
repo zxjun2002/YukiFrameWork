@@ -8,7 +8,7 @@ using System.Linq;
 using System.Reflection;
 using TMPro;
 
-public class UGUIScriptGeneratorWindow : EditorWindow
+public class UGUIScriptGenerator : EditorWindow
 {
     // 存储 UI 元素的列表
     public List<UIElement> uiElements = new List<UIElement>();
@@ -19,10 +19,13 @@ public class UGUIScriptGeneratorWindow : EditorWindow
     // 存储当前找到的根节点
     private GameObject rootNode;
     private bool isRootNodeChecked = false; // 用于控制是否已通过根节点检查
+    //TODO:自定义命名空间名
+    public static string NameSpaceName { get; private set; } = "YuKi";
     
     // 优先级队列，按顺序配置需要检测的类型
     private readonly List<Type> componentPriority = new List<Type>
     {
+        //TODO:新增自定义类型
         typeof(Button),
         typeof(Text),
         typeof(Slider),
@@ -31,26 +34,31 @@ public class UGUIScriptGeneratorWindow : EditorWindow
     };
     
     // 根据优先级队列获取默认组件类型
-    public string GetDefaultComponentType(GameObject go = null)
+    private string GetDefaultComponentType(GameObject go = null)
     {
         foreach (var type in componentPriority)
         {
-            if (go.GetComponent(type) != null)
+            // 检测当前物体上是否有类型是当前优先级类型的子类或本身
+            var components = go.GetComponents<Component>();
+            foreach (var component in components)
             {
-                return type.Name;
+                if (component != null && component.GetType().IsSubclassOf(type) || component.GetType() == type)
+                {
+                    return component.GetType().Name;
+                }
             }
         }
         return "GameObject";
     }
 
     // 创建并显示窗口
-    [MenuItem("Window/UGUI Script Generator")]
+    [MenuItem("Tool/UGUI Script Generator")]
     public static void ShowWindow()
     {
-        GetWindow<UGUIScriptGeneratorWindow>("UGUI Script Generator");
+        GetWindow<UGUIScriptGenerator>("UGUI Script Generator");
     }
     
-    [MenuItem("GameObject/Generate UI Script for UIPanel", false, 10)]
+    [MenuItem("GameObject/Tool/Generate UI Script for UIPanel", false, 10)]
     private static void GenerateUIScriptForSelectedPanel()
     {
         GameObject selectedObj = Selection.activeGameObject;
@@ -69,7 +77,7 @@ public class UGUIScriptGeneratorWindow : EditorWindow
         }
 
         // 获取到生成UI元素脚本窗口
-        UGUIScriptGeneratorWindow window = GetWindow<UGUIScriptGeneratorWindow>("UGUI Script Generator");
+        UGUIScriptGenerator window = GetWindow<UGUIScriptGenerator>("UGUI Script Generator");
     
         // 清空现有的 UI 元素
         window.uiElements.Clear();
@@ -266,45 +274,69 @@ public class UGUIScriptGeneratorWindow : EditorWindow
         // 获取 UI 脚本类的名称（以根节点为基础）
         string className = rootNode.name; // 根节点名称作为类名
 
-        // 生成脚本内容
-        string scriptContent = GenerateScriptContent(className, uiElements);
+        // 生成 View 文件内容
+        string viewScriptContent = GenerateScriptContent(className, uiElements);
 
-        // 保存文件路径
-        string filePath = Path.Combine(scriptOutputPath, className + ".cs");
+        // 生成类文件内容
+        string classScriptContent = $@"using UnityEngine;
+using UnityEngine.UI;
 
-        // 创建目录（如果不存在）
-        Directory.CreateDirectory(Path.GetDirectoryName(filePath));
+namespace {NameSpaceName} 
+{{
+    public partial class {className} : BasePanel
+    {{
+        
+    }}
+}}";
 
-        // 写入文件
-        File.WriteAllText(filePath, scriptContent);
+        // 创建输出目录
+        string classFolderPath = Path.Combine(scriptOutputPath, className);
+        Directory.CreateDirectory(classFolderPath);
+
+        // 保存 View 文件
+        string viewFilePath = Path.Combine(classFolderPath, className + ".View.cs");
+        File.WriteAllText(viewFilePath, viewScriptContent);
+
+        // 保存类文件
+        string classFilePath = Path.Combine(classFolderPath, className + ".cs");
+        // 检查文件是否已存在
+        if (!File.Exists(classFilePath))
+        {
+            // 如果文件不存在，写入文件
+            File.WriteAllText(classFilePath, classScriptContent);
+            Debug.Log("Class file saved: " + classFilePath);
+        }
+        else
+        {
+            // 如果文件已存在，可以选择跳过或提示
+            Debug.Log("Class file already exists, skipping write: " + classFilePath);
+        }
 
         // 刷新资源数据库
         AssetDatabase.Refresh();
 
-        // 通过反射加载生成的脚本
-        MonoScript script = AssetDatabase.LoadAssetAtPath<MonoScript>(filePath);
-
-        // 确保脚本挂载到根节点
-        if (script != null)
+        // 通过反射加载生成的脚本并挂载到根节点
+        MonoScript viewScript = AssetDatabase.LoadAssetAtPath<MonoScript>(viewFilePath);
+        if (viewScript != null)
         {
-            // 判断是否已经挂载此脚本
-            var existingComponent = rootNode.GetComponent(script.GetClass());
+            // 使用自定义逻辑解析类名
+            Type scriptClass = viewScript.GetClassWithCustomLogic();
+            var existingComponent = rootNode.GetComponent(scriptClass);
             if (existingComponent == null)
             {
-                rootNode.AddComponent(script.GetClass());
+                rootNode.AddComponent(scriptClass);
             }
 
             // 获取添加的组件
-            var component = rootNode.GetComponent(script.GetClass());
+            var component = rootNode.GetComponent(scriptClass);
 
             // 为每个 UI 元素赋值
             AssignUIElements(component);
         }
-        
+
         // 确保在脚本中正确应用和保存预制体
         if (PrefabUtility.IsPartOfPrefabInstance(rootNode))
         {
-            // 这是场景中的预制体实例
             PrefabUtility.ApplyPrefabInstance(rootNode, InteractionMode.UserAction);
             Debug.Log($"Prefab applied: {rootNode.name}");
         }
@@ -313,37 +345,52 @@ public class UGUIScriptGeneratorWindow : EditorWindow
             SavePrefabByName(rootNode);
         }
 
-        Debug.Log($"Script generated at: {filePath}");
+        Debug.Log($"Scripts generated at: {classFolderPath}");
     }
+
 
     // 为生成的脚本中的变量赋值
     private void AssignUIElements(Component component)
     {
+        if (component == null)
+        {
+            Debug.LogError("Component is null. Ensure it is correctly attached.");
+            return;
+        }
+
+        Type componentType = component.GetType();
+
         foreach (var element in uiElements)
         {
             string fieldName = element.fieldName;
-            string componentType = element.GetComponentType();
+            string expectedType = element.GetComponentType();
 
-            // 获取字段时，确保包括私有字段
-            var field = component.GetType().GetField(fieldName, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+            // 获取字段，包括私有字段和实例字段
+            var field = componentType.GetField(fieldName, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
             if (field != null)
             {
-                // 通过反射动态获取组件
-                var componentInstance = element.uiObject.GetComponent(componentType);
+                // 动态获取目标类型的组件
+                var targetComponent = element.uiObject.GetComponent(expectedType);
 
-                if (componentInstance != null)
+                if (targetComponent != null)
                 {
-                    // 如果组件存在，设置字段为对应组件
-                    field.SetValue(component, componentInstance);
+                    // 如果找到匹配组件，赋值到字段
+                    field.SetValue(component, targetComponent);
                 }
                 else
                 {
-                    // 如果类型不匹配或没有组件，默认为 GameObject
+                    Debug.LogWarning($"Component of type {expectedType} not found on {element.uiObject.name}. Assigning GameObject.");
+                    // 如果类型不匹配，赋值为 GameObject
                     field.SetValue(component, element.uiObject);
                 }
             }
+            else
+            {
+                Debug.LogError($"Field {fieldName} not found in {componentType}. Check the field name and script consistency.");
+            }
         }
     }
+
     //根据名字去查找预制体并保存
     private void SavePrefabByName(GameObject rootNode)
     {
@@ -396,22 +443,31 @@ public class UGUIScriptGeneratorWindow : EditorWindow
     {
         System.Text.StringBuilder sb = new System.Text.StringBuilder();
 
+        // 添加 using 指令
         sb.AppendLine("using UnityEngine;");
         sb.AppendLine("using UnityEngine.UI;");
-        sb.AppendLine("using TMPro;"); // 如果你需要 TextMeshPro 的支持
+        sb.AppendLine("using TMPro;");
         sb.AppendLine();
 
-        sb.AppendLine($"public partial class {className} : BasePanel");
+        // 添加命名空间
+        sb.AppendLine($"namespace {NameSpaceName}");
         sb.AppendLine("{");
+
+        // 添加类定义
+        sb.AppendLine($"    public partial class {className}");
+        sb.AppendLine("    {");
 
         // 为每个 UI 元素生成字段
         foreach (var element in elements)
         {
             string componentType = element.GetComponentType();
-            sb.AppendLine($"    [SerializeField] private {componentType} {element.fieldName};");
+            sb.AppendLine($"        [SerializeField] private {componentType} {element.fieldName};");
         }
 
+        // 关闭类和命名空间
+        sb.AppendLine("    }");
         sb.AppendLine("}");
+
         return sb.ToString();
     }
 
@@ -563,5 +619,37 @@ public class UIElement
     {
         selectedComponentType = newType;
         fieldName = uiObject.name + "_" + selectedComponentType;
+    }
+}
+//扩展方法,去掉生成UIPanel.View的后缀,正确生成Class
+public static class MonoScriptExtensions
+{
+    public static Type GetClassWithCustomLogic(this MonoScript script)
+    {
+        // 获取脚本的文件名
+        string fileName = script.name; // "BattleTestUIPanel.View"
+        
+        // 根据规则去掉 ".View" 部分，得到类名
+        string className = fileName.Replace(".View", ""); // "BattleTestUIPanel"
+
+        // 假设命名空间是固定的
+        string namespaceName = UGUIScriptGenerator.NameSpaceName;
+
+        // 构造完整类名
+        string fullClassName = $"{namespaceName}.{className}";
+
+        // 尝试获取类型
+        // 通过查找当前所有加载的程序集来获取目标类型
+        foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
+        {
+            var type = assembly.GetType(fullClassName);
+            if (type != null)
+            {
+                return type;
+            }
+        }
+
+        // 如果没有找到，则返回 null
+        return null;
     }
 }
