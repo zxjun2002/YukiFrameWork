@@ -1,12 +1,12 @@
 using UnityEngine;
-using YuKi;
+// using YuKi;
 
 public class TestMyUI : MonoBehaviour
 {
     // Start is called before the first frame update
     void Start()
     {
-        UIManager.Instance.OpenPanel<AUIPanel>();
+        // UIManager.Instance.OpenPanel<AUIPanel>();
     }
 
     // Update is called once per frame

@@ -276,33 +276,9 @@ public class UGUIScriptGenerator : EditorWindow
 
         // 生成 View 文件内容
         string viewScriptContent = GenerateScriptContent(className, uiElements);
-
-        // 生成类文件内容
-        string classScriptContent = $@"using UnityEngine;
-using UnityEngine.UI;
-
-namespace {NameSpaceName} 
-{{
-    public partial class {className} : BasePanel
-    {{
-         #region 生命周期
-        public override void Init()
-        {{
-            base.Init();
-        }}
-
-        public override void OnShow(BasePanelArg arg = null)
-        {{
-            base.OnShow();
-        }}
-
-        public override void OnClose()
-        {{
-            base.OnClose();
-        }}
-        #endregion
-    }}
-}}";
+        
+        //生成类文件内容
+        string classScriptContent = GeneratePanelScriptContent(className,uiElements);
 
         // 创建输出目录
         string classFolderPath = Path.Combine(scriptOutputPath, className);
@@ -484,6 +460,101 @@ namespace {NameSpaceName}
         sb.AppendLine("}");
 
         return sb.ToString();
+    }
+    
+    // 生成UIPanel脚本的内容
+    private string GeneratePanelScriptContent(string className, List<UIElement> elements)
+    {
+        System.Text.StringBuilder sb = new System.Text.StringBuilder();
+
+        // 添加 using 指令
+        sb.AppendLine("using UnityEngine;");
+        sb.AppendLine("using UnityEngine.UI;");
+        sb.AppendLine();
+
+        // 添加命名空间
+        sb.AppendLine($"namespace {NameSpaceName}");
+        sb.AppendLine("{");
+
+        // 添加类定义
+        sb.AppendLine($"    public partial class {className} : BasePanel");
+        sb.AppendLine("    {");
+
+        // 添加生命周期方法
+        sb.AppendLine("        #region 生命周期");
+        sb.AppendLine("        public override void Init()");
+        sb.AppendLine("        {");
+        sb.AppendLine("            base.Init();");
+        sb.AppendLine("        }");
+        sb.AppendLine();
+        sb.AppendLine("        public override void OnShow(BasePanelArg arg = null)");
+        sb.AppendLine("        {");
+
+        // 添加按钮监听逻辑
+        foreach (var element in elements)
+        {
+            if (element.selectedComponentType == "Button" || IsDerivedFromButton(element.selectedComponentType))
+            {
+                sb.AppendLine($"            {element.fieldName}.onClick.AddListener({element.fieldName}Callback);");
+            }
+        }
+
+        sb.AppendLine("            base.OnShow();");
+        sb.AppendLine("        }");
+        sb.AppendLine();
+        sb.AppendLine("        public override void OnClose()");
+        sb.AppendLine("        {");
+
+        // 移除按钮监听逻辑
+        foreach (var element in elements)
+        {
+            if (element.selectedComponentType == "Button" || IsDerivedFromButton(element.selectedComponentType))
+            {
+                sb.AppendLine($"            {element.fieldName}.onClick.RemoveListener({element.fieldName}Callback);");
+            }
+        }
+
+        sb.AppendLine("            base.OnClose();");
+        sb.AppendLine("        }");
+        sb.AppendLine("        #endregion");
+        sb.AppendLine();
+
+        // 添加按钮回调方法
+        sb.AppendLine("        #region 控件回调");
+        foreach (var element in elements)
+        {
+            if (element.selectedComponentType == "Button" || IsDerivedFromButton(element.selectedComponentType))
+            {
+                sb.AppendLine($"        void {element.fieldName}Callback()");
+                sb.AppendLine("        {");
+                sb.AppendLine("            // TODO: Add your logic here");
+                sb.AppendLine("        }");
+            }
+        }
+        sb.AppendLine("        #endregion");
+
+        // 关闭类和命名空间
+        sb.AppendLine("    }");
+        sb.AppendLine("}");
+
+        return sb.ToString();
+    }
+    // 判断是否继承自Button
+    private bool IsDerivedFromButton(string componentType)
+    {
+        // 遍历所有已加载的程序集，查找匹配的类型
+        var assemblies = AppDomain.CurrentDomain.GetAssemblies();
+        foreach (var assembly in assemblies)
+        {
+            // 在当前程序集内查找类型
+            var type = assembly.GetType(componentType);
+            if (type != null && typeof(Button).IsAssignableFrom(type))
+            {
+                return true; // 如果类型存在且继承自 Button，则返回 true
+            }
+        }
+
+        return false; // 未找到匹配的类型
     }
 
     // 查找给定 UI 元素的根节点

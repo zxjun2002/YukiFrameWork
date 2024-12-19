@@ -1,6 +1,7 @@
 using UnityEngine;
+using UnityEngine.UI;
 
-namespace YuKi 
+namespace YuKi
 {
     public partial class AUIPanel : BasePanel
     {
@@ -12,21 +13,27 @@ namespace YuKi
 
         public override void OnShow(BasePanelArg arg = null)
         {
+            TestBtn.onClick.AddListener(TestBtnCallback);
             CheckBtn.onClick.AddListener(CheckBtnCallback);
             base.OnShow();
         }
 
         public override void OnClose()
         {
+            TestBtn.onClick.RemoveListener(TestBtnCallback);
             CheckBtn.onClick.RemoveListener(CheckBtnCallback);
             base.OnClose();
         }
         #endregion
 
         #region 控件回调
+        void TestBtnCallback()
+        {
+            // TODO: Add your logic here
+        }
         void CheckBtnCallback()
         {
-            GameLogger.Log("测试通过");
+            // TODO: Add your logic here
         }
         #endregion
     }
