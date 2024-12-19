@@ -285,7 +285,22 @@ namespace {NameSpaceName}
 {{
     public partial class {className} : BasePanel
     {{
-        
+         #region 生命周期
+        public override void Init()
+        {{
+            base.Init();
+        }}
+
+        public override void OnShow(BasePanelArg arg = null)
+        {{
+            base.OnShow();
+        }}
+
+        public override void OnClose()
+        {{
+            base.OnClose();
+        }}
+        #endregion
     }}
 }}";
 
@@ -415,7 +430,7 @@ namespace {NameSpaceName}
         else
         {
             // 检查是否存在文件夹 'Assets/Prefabs/'
-            string prefabFolderPath = "Assets/Prefabs";
+            string prefabFolderPath = "Assets/Resources/Panel";
             if (!AssetDatabase.IsValidFolder(prefabFolderPath))
             {
                 // 如果文件夹不存在，则创建文件夹

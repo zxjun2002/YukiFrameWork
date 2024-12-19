@@ -7,6 +7,7 @@ namespace YuKi
     public partial class AUIPanel
     {
         [SerializeField] private Image TestImg;
-        [SerializeField] private TextMeshProUGUI Name;
+        [SerializeField] private TextMeshProUGUI NameText;
+        [SerializeField] private Button CheckBtn;
     }
 }

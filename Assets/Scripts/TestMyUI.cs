@@ -1,13 +1,12 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
+using YuKi;
 
-public class BasePanel : MonoBehaviour
+public class TestMyUI : MonoBehaviour
 {
     // Start is called before the first frame update
     void Start()
     {
-        
+        UIManager.Instance.OpenPanel<AUIPanel>();
     }
 
     // Update is called once per frame
