@@ -1,29 +1,19 @@
 using System;
 using System.Collections.Generic;
+using MIKUFramework.IOC;
 using UnityEngine;
 
-public class UIManager
+[Component]
+public class UIManager:IUIManager
 {
     private static UIManager _instance;
     private Transform _uiRoot;
     // 已打开界面的缓存字典
-    private Dictionary<string, BasePanel> _opelPanelDict;
+    private Dictionary<string, BasePanel> _opelPanelDict = new Dictionary<string, BasePanel>();
     //计数器，用于设置界面层级
     private static int _sortinglayer = 0;
     //缓存字典，存储读取和生成后的界面
-    private Dictionary<string, BasePanel> _buffPanelDict;
-
-    public static UIManager Instance
-    {
-        get
-        {
-            if (_instance == null)
-            {
-                _instance = new UIManager();
-            }
-            return _instance;
-        }
-    }
+    private Dictionary<string, BasePanel> _buffPanelDict = new Dictionary<string, BasePanel>();
 
     public Transform UIRoot
     {
@@ -43,16 +33,6 @@ public class UIManager
             };
             return _uiRoot;
         }
-    }
-    private UIManager()
-    {
-        InitDicts();
-    }
-
-    private void InitDicts()
-    {
-        _opelPanelDict = new Dictionary<string, BasePanel>();
-        _buffPanelDict = new Dictionary<string, BasePanel>();
     }
 
     public T OpenPanel<T>(BasePanelArg panelArg = null) where T : BasePanel, new()

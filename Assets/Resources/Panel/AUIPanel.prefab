@@ -559,6 +559,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   TestBtn: {fileID: 4987939940126031758}
   CheckBtn: {fileID: 7223694701505450979}
+  NameText: {fileID: 791124662930065395}
+  TestImg: {fileID: 6479292926434688000}
 --- !u!1 &6937116438647556923
 GameObject:
   m_ObjectHideFlags: 0

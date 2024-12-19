@@ -1,9 +1,10 @@
+using MIKUFramework.IOC;
 using UnityEngine;
 
 public abstract class BasePanel: MonoBehaviour
 {
     //子类用于重写的初始化函数,abstract代表必须重写
-    public virtual void Init(){}
+    public virtual void Init(){IoCHelper.Instance.Inject(this);}
     //子类用于重写的显示时函数
     public virtual void OnShow(BasePanelArg arg = null) { }
     //子类用于重写的关闭时函数
@@ -17,7 +18,6 @@ public abstract class BasePanel: MonoBehaviour
 
     public void SetPanelOrder(int sortinglayer)
     {
-        var a =transform.Find("Canvas");
         transform.Find("Canvas").GetComponent<Canvas>().sortingOrder = sortinglayer;
     }
     public void ClosePanel()

@@ -15,6 +15,10 @@ namespace YuKi
         {
             TestBtn.onClick.AddListener(TestBtnCallback);
             CheckBtn.onClick.AddListener(CheckBtnCallback);
+            if (arg is AUIPanelArg panelArg)
+            {
+                NameText.text = panelArg.content;
+            }
             base.OnShow();
         }
 
@@ -36,5 +40,10 @@ namespace YuKi
             // TODO: Add your logic here
         }
         #endregion
+    }
+
+    public class AUIPanelArg : BasePanelArg
+    {
+        public string content;
     }
 }

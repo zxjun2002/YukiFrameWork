@@ -8,5 +8,7 @@ namespace YuKi
     {
         [SerializeField] private TestButton TestBtn;
         [SerializeField] private Button CheckBtn;
+        [SerializeField] private TextMeshProUGUI NameText;
+        [SerializeField] private Image TestImg;
     }
 }
