@@ -26,7 +26,7 @@ namespace YuKi
         #region 控件回调
         void CheckBtnCallback()
         {
-            Debug.Log("测试完成");
+            GameLogger.Log("测试通过");
         }
         #endregion
     }

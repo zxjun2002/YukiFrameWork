@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
-using Object = UnityEngine.Object;
 
 public class UIManager
 {
@@ -97,7 +96,7 @@ public class UIManager
         string panelName = typeof(T).Name;
         string path = "Panel/" + panelName;
         GameObject panelPrefab = Resources.Load<GameObject>(path);
-        GameObject panelObject = Object.Instantiate(panelPrefab, UIRoot, false);
+        GameObject panelObject = GameObject.Instantiate(panelPrefab, UIRoot, false);
         BasePanel panel = panelObject.GetComponent<BasePanel>();
         panel.Init();
         return panel;
