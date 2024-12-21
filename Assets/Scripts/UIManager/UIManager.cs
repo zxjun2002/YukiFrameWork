@@ -6,7 +6,6 @@ using UnityEngine;
 [Component]
 public class UIManager:IUIManager
 {
-    private static UIManager _instance;
     private Transform _uiRoot;
     // 已打开界面的缓存字典
     private Dictionary<string, BasePanel> _opelPanelDict = new Dictionary<string, BasePanel>();
