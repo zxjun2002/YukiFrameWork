@@ -169,7 +169,15 @@ public class UGUIScriptGenerator : EditorWindow
                 int newIndex = EditorGUILayout.Popup(currentIndex, availableTypes);
                 if (newIndex != currentIndex)
                 {
-                    element.UpdateSelectedComponentType(availableTypes[newIndex]);
+                    //检测新类型是否已经存在
+                    if (uiElements.Any(e => e.uiObject == element.uiObject && e.selectedComponentType == availableTypes[newIndex]))
+                    {
+                        Debug.LogWarning($"UI element {element.uiObject.name} with type {availableTypes[newIndex]} already exists in the list, skipping.");
+                    }
+                    else
+                    {
+                        element.UpdateSelectedComponentType(availableTypes[newIndex]);
+                    }
                 }
             }
 
