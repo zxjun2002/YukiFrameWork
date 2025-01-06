@@ -9,10 +9,11 @@ public partial class ConfData
 [MemoryPackable]
 public partial class Item
 {
-    public int Id;
-    public string ItemName;
-    public long ItemPId;
-    public string ItemJson;
-    public int[] ItemList;
-    public string[] ItemDesList;
+    public int Id { get; set; }
+    public string Itemname { get; set; }
+    public long Itempid { get; set; }
+    public string Itemjson { get; set; }
+    public int[] Itemlist { get; set; }
+    public string[] Itemdeslist { get; set; }
+    
 }
