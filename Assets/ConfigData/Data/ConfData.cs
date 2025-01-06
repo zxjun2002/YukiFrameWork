@@ -9,7 +9,7 @@ public partial class ConfData
 [MemoryPackable]
 public partial class Item
 {
-    public int ItemId;
+    public int Id;
     public string ItemName;
     public long ItemPId;
     public string ItemJson;

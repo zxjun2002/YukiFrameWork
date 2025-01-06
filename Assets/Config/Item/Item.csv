@@ -1,4 +1,4 @@
-"item_id","item_name","item_pid","item_json","item_list","item_des_list"
+"id","item_name","item_pid","item_json","item_list","item_des_list"
 "int","string","long","string","int[]","string[]"
 "1001","背带裤","10000198","{
     "name": "Json.CN",
