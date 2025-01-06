@@ -1,23 +1,24 @@
-using System;
 using System.Collections.Generic;
+using System.Globalization;
 using UnityEngine;
-using UnityEditor;
 using System.IO;
 using System.Linq;
-using Unity.Plastic.Newtonsoft.Json.Linq;
+using CsvHelper;
+using CsvHelper.Configuration;
+using UnityEditor;
 
 namespace ReadConf
 {
     /// <summary>
     /// 此代码为自动生成,不要随便修改
     /// </summary>
+    
     public static class GenCodeEditor
     {
-
-        //[MenuItem("Tools/TestGenCode")]
+        [MenuItem("Tool/生成代码")]
         public static GenCodeContent DoGenConfCode()
         {
-            string[] files = Directory.GetFiles(Application.dataPath + ResEditorConfig.CSV_Path, "*.json", SearchOption.AllDirectories);
+            string[] files = Directory.GetFiles(Application.dataPath + ResEditorConfig.CSV_Path, "*.csv", SearchOption.AllDirectories);
 
             string tip = "/// <summary>\n/// 此代码为自动生成,修改无意义重新生成会被后覆盖\n/// </summary>\n\n";
             
@@ -33,39 +34,82 @@ namespace ReadConf
 
             foreach (string file in files)
             {
-                Debug.Log("[配置表][Editor]"+file);
-                if (file.Contains("game_params") || file.Contains("table_desc"))
+                Debug.Log("[配置表][Editor] " + file);
+
+                // 解析 CSV 文件
+                // 配置 CSVHelper 选项
+                var config = new CsvConfiguration(CultureInfo.InvariantCulture)
                 {
-                    Debug.LogWarning("[配置表][Editor]:跳过game_params.csv");
-                    continue;
+                    HasHeaderRecord = true,           // CSV 第一行是表头
+                    Delimiter = ",",                  // 默认分隔符
+                    TrimOptions = TrimOptions.None,   // 不自动修剪空格
+                    PrepareHeaderForMatch = args => args.Header.Trim(), // 表头字段处理
+                    BadDataFound = null               // 忽略坏数据
+                };
+                using (var reader = new StreamReader(file))
+                using (var csv = new CsvReader(reader, config))
+                {
+                    // 读取表头
+                    csv.Read();
+                    csv.ReadHeader();
+                    var propertyNames = csv.HeaderRecord.ToList();
+
+                    // 读取类型行
+                    if (!csv.Read())
+                    {
+                        Debug.LogWarning($"[警告] 文件 {file} 格式不正确，缺少类型行。");
+                        continue;
+                    }
+
+                    // 获取类型数据
+                    var propertyTypes = new List<string>();
+                    foreach (var header in propertyNames)
+                    {
+                        propertyTypes.Add(csv.GetField(header));
+                    }
+
+                    if (propertyNames.Count != propertyTypes.Count)
+                    {
+                        Debug.LogWarning($"[警告] 文件 {file} 属性名和类型数量不一致。");
+                        continue;
+                    }
+
+                    // 生成类
+                    string className = Path.GetFileNameWithoutExtension(file);
+                    string classDef = $"[MemoryPackable]\npublic partial class {className} {{\n";
+
+                    List<GenCodeProp> props = new();
+
+                    for (int i = 0; i < propertyNames.Count; i++)
+                    {
+                        string propName = ReadConfEditorUtil.ToCamelLower(propertyNames[i]);
+                        string propType = MapCsvTypeToCSharpType(propertyTypes[i]);
+
+                        classDef += $"    public {propType} {propName};\n";
+
+                        props.Add(new GenCodeProp { name = propName, propType = propType });
+                    }
+
+                    classDef += "}\n\n";
+
+                    string classFieldName = char.ToLower(className[0]) + className[1..];
+                    fieldStr += $"    public {className}[] {classFieldName};\n";
+                    defStr += classDef;
+
+                    result.classes.Add(new ClassContent
+                    {
+                        className = className,
+                        fileName = className,
+                        CsvPath = file.Replace("/", "\\"),
+                        classDef = classDef,
+                        props = props,
+                    });
                 }
 
-                string str = System.IO.File.ReadAllText(file, System.Text.Encoding.UTF8);
-                JObject jo = JObject.Parse(str);
-                string tavle_property = jo["table_properties"] == null || jo["table_properties"].Count() == 0
-                    ? string.Empty
-                    : jo["table_properties"].Where(d => d["property_name"].Value<string>() == "cs_type").FirstOrDefault()[
-                        "property_value"].Value<string>();
-                
-                if (tavle_property != "ALL" && tavle_property != "C")
-                {
-                    continue;
-                }
-                
-                GameLogger.LogYellow("[生成配置表]"+file);
-                //-------------class name
-                ClassContent content = WriteClass(jo, file);
-                string classFieldName = char.ToLower(content.className[0]) + content.className[1..];
-                fieldStr += "    public " + content.className + "[] " + classFieldName + ";\n";
-                defStr += content.classDef;
-
-                result.classes.Add(content);
             }
 
             codeStr = tip + codeStr;
-            
             codeStr += (fieldStr + "}\n\n" + defStr);
-
 
             Debug.Log(codeStr);
 
@@ -74,91 +118,16 @@ namespace ReadConf
             return result;
         }
 
-        private static ClassContent WriteClass(JObject jo, string jsonPath)
+        private static string MapCsvTypeToCSharpType(string csvType)
         {
-            string name = jo["table_name"].Value<string>();
-            string nameResult = ReadConfEditorUtil.ToCamelUpper(name);
-            List<GenCodeProp> props = new List<GenCodeProp>();
-            foreach (var col in jo["columns"])
+            return csvType switch
             {
-                string col_type = col["col_properties"] == null || col["col_properties"].Count() == 0
-                    ? string.Empty
-                    : col["col_properties"].Where(d => d["property_name"].Value<string>() == "cs_type").FirstOrDefault()[
-                        "property_value"].Value<string>();
-                if (col_type == "ALL" || col_type == "C")
-                {
-                    GenCodeProp prop = new GenCodeProp()
-                    {
-                        name = ReadConfEditorUtil.ToCamelLower(col["col_name"].Value<string>()),
-                        propType = col["value_type"].Value<string>()
-                    };
-                    props.Add(prop);
-                }
-            }
-
-            foreach (GenCodeProp prop in props)
-            {
-                if (prop.propType == "text")
-                {
-                    prop.propType = "string";
-                }
-                else if (prop.propType == "snowflake")
-                {
-                    prop.propType = "int";
-                }
-                else if (prop.propType == "tinyint")
-                {
-                    prop.propType = "int";
-                }
-                else if (prop.propType == "bigint")
-                {
-                    prop.propType = "int";
-                }
-            }
-
-            string result = "[MemoryPackable]\npublic partial class " + nameResult + " {\n";
-
-            foreach (JObject col in jo["columns"])
-            {
-                string col_type = col["col_properties"] == null || col["col_properties"].Count() == 0
-                    ? string.Empty
-                    : col["col_properties"].Where(d => d["property_name"].Value<string>() == "cs_type").FirstOrDefault()[
-                        "property_value"].Value<string>();
-                if (col_type != "ALL" && col_type != "C")
-                {
-                    continue;
-                }
-                string nameStr = ReadConfEditorUtil.ToCamelLower(col["col_name"].Value<string>());
-                string propType = col["value_type"].Value<string>();
-                if (propType == "text")
-                {
-                    propType = "string";
-                }
-                else if (propType == "snowflake")
-                {
-                    propType = "long";
-                }
-                else if (propType == "tinyint")
-                {
-                    propType = "int";
-                }
-                else if (propType == "bigint")
-                {
-                    propType = "int";
-                }
-
-                result += ("    public " + propType + " " + nameStr + ";\n");
-            }
-
-
-            result += "}\n\n";
-            return new ClassContent
-            {
-                className = nameResult,
-                fileName = name,
-                CsvPath = jsonPath.Replace("/", "\\").Replace(".json", ".csv"),
-                classDef = result,
-                props = props,
+                "int" => "int",
+                "string" => "string",
+                "long" => "long",
+                "int[]" => "int[]",
+                "string[]" => "string[]",
+                _ => "string", // 默认类型
             };
         }
     }

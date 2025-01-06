@@ -1,19 +1,21 @@
+﻿/// <summary>
+/// 此代码为自动生成,修改无意义重新生成会被后覆盖
+/// </summary>
+
 using MemoryPack;
 
 [MemoryPackable]
-public partial class ConfData
-{
-    public Item[] ItemCt;
+public partial class ConfData{
+    public Item[] item;
 }
 
 [MemoryPackable]
-public partial class Item
-{
-    public int Id { get; set; }
-    public string Itemname { get; set; }
-    public long Itempid { get; set; }
-    public string Itemjson { get; set; }
-    public int[] Itemlist { get; set; }
-    public string[] Itemdeslist { get; set; }
-    
+public partial class Item {
+    public int id;
+    public string itemName;
+    public long itemPid;
+    public string itemJson;
+    public int[] itemList;
+    public string[] itemDesList;
 }
+
