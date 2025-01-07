@@ -28,7 +28,7 @@ namespace ReadConf
         /// 解析配置文件数据到 ConfData 对象。
         /// 支持 .csv、.xlsx 和 .xls 文件。
         /// </summary>
-        private static void ReadConfData(GenCodeContent content)
+        public static void ReadConfData(GenCodeContent content)
         {
             ConfData data = new ConfData();
 
@@ -59,21 +59,20 @@ namespace ReadConf
                     if (filePath.EndsWith(".csv"))
                     {
                         ReadCsvFile(filePath, fieldType, subFields, headerNames, confList);
+                        // 将解析结果赋值给对应的字段
+                        var confArr = Array.CreateInstance(fieldType, confList.Count);
+                        confList.CopyTo((object[])confArr);
+                        field.SetValue(data, confArr);
                     }
                     else if (filePath.EndsWith(".xlsx") || filePath.EndsWith(".xls"))
                     {
-                        ReadExcelFile(filePath, fieldType, subFields, headerNames, confList);
+                        ReadExcelFile(filePath, content, fieldType, subFields, data, className);
                     }
                     else
                     {
                         Debug.LogWarning($"不支持的文件格式: {filePath}");
                         continue;
                     }
-
-                    // 将解析结果赋值给对应的字段
-                    var confArr = Array.CreateInstance(fieldType, confList.Count);
-                    confList.CopyTo((object[])confArr);
-                    field.SetValue(data, confArr);
                 }
                 catch (Exception e)
                 {
@@ -108,6 +107,13 @@ namespace ReadConf
                 csv.ReadHeader();
                 headerNames.AddRange(csv.HeaderRecord.Select(ReadConfEditorUtil.ToCamelLower));
 
+                // 跳过类型行（第二行）
+                if (!csv.Read())
+                {
+                    Debug.LogWarning($"文件 {filePath} 缺少数据行，跳过解析");
+                    return;
+                }
+
                 // 逐行读取数据
                 while (csv.Read())
                 {
@@ -135,55 +141,89 @@ namespace ReadConf
                 }
             }
         }
-
+        
         /// <summary>
-        /// 使用 ExcelDataReader 解析 Excel 文件（支持 .xlsx 和 .xls）。
+        /// 使用 ExcelDataReader 解析 Excel 文件的所有工作表（支持 .xlsx 和 .xls）。
         /// </summary>
-        private static void ReadExcelFile(string filePath, Type fieldType, FieldInfo[] subFields, List<string> headerNames, List<object> confList)
+        private static void ReadExcelFile(string filePath, GenCodeContent content, Type fieldType, FieldInfo[] subFields, ConfData data, string currentClassName)
         {
             using (var stream = File.Open(filePath, FileMode.Open, FileAccess.Read))
             using (var reader = ExcelReaderFactory.CreateReader(stream))
             {
-                bool isHeader = true;
-                while (reader.Read())
+                do
                 {
-                    if (isHeader)
+                    string sheetName = reader.Name;
+
+                    // 找到与当前工作表匹配的类
+                    if (ReadConfEditorUtil.ToCamelUpper(sheetName) != currentClassName)
                     {
-                        // 读取表头，并将其转换为驼峰格式
-                        for (int i = 0; i < reader.FieldCount; i++)
-                        {
-                            headerNames.Add(ReadConfEditorUtil.ToCamelLower(reader.GetString(i)?.Trim() ?? string.Empty));
-                        }
-                        isHeader = false;
                         continue;
                     }
 
-                    var rowObj = Activator.CreateInstance(fieldType);
-
-                    for (int i = 0; i < subFields.Length; i++)
+                    FieldInfo field = typeof(ConfData).GetField(currentClassName, BindingFlags.IgnoreCase | BindingFlags.Public | BindingFlags.Instance);
+                    if (field == null)
                     {
-                        try
-                        {
-                            string subFieldName = subFields[i].Name;
-                            int fieldIndex = headerNames.IndexOf(subFieldName);
-                            if (fieldIndex < 0) continue;
-
-                            // 防止类型转换错误，使用合适的获取方法
-                            string value = reader.IsDBNull(fieldIndex) ? null : reader.GetValue(fieldIndex)?.ToString();
-                            object val = ConvertValue(value, subFields[i].FieldType);
-                            subFields[i].SetValue(rowObj, val);
-                        }
-                        catch (Exception ex)
-                        {
-                            Debug.LogError($"Excel 文件解析错误: {ex.Message}");
-                        }
+                        Debug.LogWarning($"ConfData 中未找到对应字段: {currentClassName}");
+                        continue;
                     }
 
-                    confList.Add(rowObj);
-                }
+                    List<string> headerNames = new List<string>();
+                    List<object> confList = new List<object>();
+
+                    bool isHeader = true;
+                    bool isTypeRowSkipped = false;
+
+                    while (reader.Read())
+                    {
+                        if (isHeader)
+                        {
+                            // 读取表头，并将其转换为驼峰格式
+                            for (int i = 0; i < reader.FieldCount; i++)
+                            {
+                                headerNames.Add(ReadConfEditorUtil.ToCamelLower(reader.GetString(i)?.Trim() ?? string.Empty));
+                            }
+                            isHeader = false;
+                            continue;
+                        }
+
+                        if (!isTypeRowSkipped)
+                        {
+                            // 跳过类型行（第二行）
+                            isTypeRowSkipped = true;
+                            continue;
+                        }
+
+                        var rowObj = Activator.CreateInstance(fieldType);
+
+                        for (int i = 0; i < subFields.Length; i++)
+                        {
+                            try
+                            {
+                                string subFieldName = subFields[i].Name;
+                                int fieldIndex = headerNames.IndexOf(subFieldName);
+                                if (fieldIndex < 0) continue;
+
+                                // 防止类型转换错误，使用合适的获取方法
+                                string value = reader.IsDBNull(fieldIndex) ? null : reader.GetValue(fieldIndex)?.ToString();
+                                object val = ConvertValue(value, subFields[i].FieldType);
+                                subFields[i].SetValue(rowObj, val);
+                            }
+                            catch (Exception ex)
+                            {
+                                Debug.LogError($"Excel 文件解析错误: {ex.Message}");
+                            }
+                        }
+
+                        confList.Add(rowObj);
+                    }
+
+                    // 将解析结果赋值到对应字段
+                    var confArr = Array.CreateInstance(fieldType, confList.Count);
+                    confList.CopyTo((object[])confArr);
+                    field.SetValue(data, confArr);
+                } while (reader.NextResult()); // 切换到下一个工作表
             }
         }
-
 
         /// <summary>
         /// 将字符串值转换为目标类型。
@@ -197,8 +237,7 @@ namespace ReadConf
                 if (targetType == typeof(int)) return int.TryParse(value, out int intVal) ? intVal : 0;
                 if (targetType == typeof(long)) return long.TryParse(value, out long longVal) ? longVal : 0L;
                 if (targetType == typeof(float)) return float.TryParse(value, out float floatVal) ? floatVal : 0f;
-                if (targetType == typeof(double))
-                    return double.TryParse(value, out double doubleVal) ? doubleVal : 0d;
+                if (targetType == typeof(double)) return double.TryParse(value, out double doubleVal) ? doubleVal : 0d;
                 if (targetType == typeof(bool)) return bool.TryParse(value, out bool boolVal) ? boolVal : false;
                 if (targetType == typeof(int[])) return ParseIntArray(value);
             }

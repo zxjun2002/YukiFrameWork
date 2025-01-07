@@ -15,6 +15,7 @@ public class ConfigTable: IConfigTable
         //TODO：新增配置表需加入racastSets中
         racastSets.Add(typeof(ItemRacastSet), new ItemRacastSet(confs));
         racastSets.Add(typeof(BuffCtRacastSet), new BuffCtRacastSet(confs));
+        racastSets.Add(typeof(EffectCtRacastSet), new EffectCtRacastSet(confs));
         
         GameLogger.Log("配置表初始化成功！！！");
     }

@@ -8,6 +8,7 @@ using MemoryPack;
 public partial class ConfData{
     public Item[] item;
     public BuffCt[] buffCt;
+    public EffectCt[] effectCt;
 }
 
 [MemoryPackable]
@@ -24,5 +25,12 @@ public partial class BuffCt {
     public int id;
     public string buffName;
     public float buffVal;
+}
+
+[MemoryPackable]
+public partial class EffectCt {
+    public int id;
+    public string effectName;
+    public float effectVal;
 }
 
