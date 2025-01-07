@@ -7,6 +7,7 @@ public class GameSettingMgr : InjectableMonoBehaviour
 {
     [Autowired] private IUIManager uiManager;
     [Autowired] private PetRepository petRepository;
+    [Autowired] private IConfigTable configTable;
     /// <summary>
     /// 这是一个Unity特有的属性，用于指定Initialize方法作为运行时初始化方法，
     /// 在场景加载之前执行。这意味着，无论场景如何改变，Initialize方法都会在场景加载之前被调用一次。
@@ -19,8 +20,9 @@ public class GameSettingMgr : InjectableMonoBehaviour
     
     protected override void OnStart()
     {
+        configTable.Init(ResEditorConfig.ConfsAsset_Path);
         petRepository.Init();
-        petRepository.Aggs[1].PetInfo_E.SetNickname("NumberMan");
+        petRepository.Aggs[1].PetInfo_E.SetNickname(configTable.GetConfig<ItemRacastSet>().dic[1001].sourceConf.itemName);
         uiManager.OpenPanel<AUIPanel>(new AUIPanelArg()
         {
             content = petRepository.Aggs[1].PetInfo_E.Nickname

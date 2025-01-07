@@ -8,10 +8,6 @@ using CsvHelper.Configuration;
 
 namespace ReadConf
 {
-    /// <summary>
-    /// 此代码为自动生成,不要随便修改
-    /// </summary>
-    
     public static class GenCodeEditor
     {
         public static GenCodeContent DoGenConfCode()
@@ -93,6 +89,31 @@ namespace ReadConf
                     string classFieldName = char.ToLower(className[0]) + className[1..];
                     fieldStr += $"    public {className}[] {classFieldName};\n";
                     defStr += classDef;
+                    
+                    // 生成 XXXRacastSet 和 XXXRacast 类文件
+                    string racastSetClass = "using System.Collections.Generic;\nusing System.Linq;\n"
+                                             +$"public struct {className}RacastSet : IRacastSet\n" +
+                                             "{\n" +
+                                             $"    public Dictionary<int, {className}Racast> dic;\n" +
+                                             $"    public {className}RacastSet(ConfData data)\n" +
+                                             "    {\n" +
+                                             $"        dic = (from es in data.{classFieldName}\n" +
+                                             $"               let esr = new {className}Racast(es)\n" +
+                                             "               select esr).ToDictionary(esr => esr.sourceConf.id);\n" +
+                                             "    }\n" +
+                                             "}\n";
+
+                    string racastClass = $"public class {className}Racast\n" +
+                                         "{\n" +
+                                         $"    public {className} sourceConf;\n\n" +
+                                         $"    public {className}Racast({className} sourceConf)\n" +
+                                         "    {\n" +
+                                         "        this.sourceConf = sourceConf;\n" +
+                                         "    }\n" +
+                                         "}\n\n";
+                    
+                    string racastSetFilePath = Path.Combine(Application.dataPath + ResEditorConfig.Racast_Path, $"{className}RacastSet.cs");
+                    File.WriteAllText(racastSetFilePath, racastSetClass + racastClass);
 
                     result.classes.Add(new ClassContent
                     {
