@@ -7,6 +7,7 @@ using MemoryPack;
 [MemoryPackable]
 public partial class ConfData{
     public Item[] item;
+    public BuffCt[] buffCt;
 }
 
 [MemoryPackable]
@@ -16,5 +17,12 @@ public partial class Item {
     public long itemPid;
     public string itemJson;
     public int[] itemList;
+}
+
+[MemoryPackable]
+public partial class BuffCt {
+    public int id;
+    public string buffName;
+    public float buffVal;
 }
 

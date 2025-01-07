@@ -23,6 +23,7 @@ public class GameSettingMgr : InjectableMonoBehaviour
         configTable.Init(ResEditorConfig.ConfsAsset_Path);
         petRepository.Init();
         petRepository.Aggs[1].PetInfo_E.SetNickname(configTable.GetConfig<ItemRacastSet>().dic[1001].sourceConf.itemName);
+        GameLogger.LogCyan(configTable.GetConfig<BuffCtRacastSet>().dic[101].sourceConf.buffVal);
         uiManager.OpenPanel<AUIPanel>(new AUIPanelArg()
         {
             content = petRepository.Aggs[1].PetInfo_E.Nickname

@@ -1,10 +1,11 @@
-using System.Collections.Generic;
+using System.Collections.Generic; 
 using System.Globalization;
 using UnityEngine;
 using System.IO;
 using System.Linq;
 using CsvHelper;
 using CsvHelper.Configuration;
+using ExcelDataReader; // 引入用于处理 Excel 文件的库
 
 namespace ReadConf
 {
@@ -12,7 +13,9 @@ namespace ReadConf
     {
         public static GenCodeContent DoGenConfCode()
         {
-            string[] files = Directory.GetFiles(Application.dataPath + ResEditorConfig.CSV_Path, "*.csv", SearchOption.AllDirectories);
+            string[] csvFiles = Directory.GetFiles(Application.dataPath + ResEditorConfig.CSV_Path, "*.csv", SearchOption.AllDirectories);
+            string[] excelFiles = Directory.GetFiles(Application.dataPath + ResEditorConfig.CSV_Path, "*.xlsx", SearchOption.AllDirectories);
+            string[] xlsFiles = Directory.GetFiles(Application.dataPath + ResEditorConfig.CSV_Path, "*.xls", SearchOption.AllDirectories);
 
             string tip = "/// <summary>\n/// 此代码为自动生成,修改无意义重新生成会被后覆盖\n/// </summary>\n\n";
             
@@ -26,105 +29,142 @@ namespace ReadConf
                 classes = new List<ClassContent>()
             };
 
-            foreach (string file in files)
+            foreach (string file in csvFiles.Concat(excelFiles).Concat(xlsFiles))
             {
                 Debug.Log("[配置表][Editor] " + file);
 
-                // 解析 CSV 文件
-                // 配置 CSVHelper 选项
-                var config = new CsvConfiguration(CultureInfo.InvariantCulture)
+                List<string> propertyNames;
+                List<string> propertyTypes;
+
+                if (file.EndsWith(".csv"))
                 {
-                    HasHeaderRecord = true,           // CSV 第一行是表头
-                    Delimiter = ",",                  // 默认分隔符
-                    TrimOptions = TrimOptions.None,   // 不自动修剪空格
-                    PrepareHeaderForMatch = args => args.Header.Trim(), // 表头字段处理
-                    BadDataFound = null               // 忽略坏数据
-                };
-                using (var reader = new StreamReader(file))
-                using (var csv = new CsvReader(reader, config))
+                    // 解析 CSV 文件
+                    var config = new CsvConfiguration(CultureInfo.InvariantCulture)
+                    {
+                        HasHeaderRecord = true,           
+                        Delimiter = ",",                  
+                        TrimOptions = TrimOptions.None,   
+                        PrepareHeaderForMatch = args => args.Header.Trim(),
+                        BadDataFound = null               
+                    };
+                    using (var reader = new StreamReader(file))
+                    using (var csv = new CsvReader(reader, config))
+                    {
+                        csv.Read();
+                        csv.ReadHeader();
+                        propertyNames = csv.HeaderRecord.ToList();
+
+                        if (!csv.Read())
+                        {
+                            Debug.LogWarning($"[警告] 文件 {file} 格式不正确，缺少类型行。");
+                            continue;
+                        }
+
+                        propertyTypes = new List<string>();
+                        foreach (var header in propertyNames)
+                        {
+                            propertyTypes.Add(csv.GetField(header));
+                        }
+                    }
+                }
+                else if (file.EndsWith(".xlsx") || file.EndsWith(".xls"))
                 {
-                    // 读取表头
-                    csv.Read();
-                    csv.ReadHeader();
-                    var propertyNames = csv.HeaderRecord.ToList();
-
-                    // 读取类型行
-                    if (!csv.Read())
+                    // 解析 Excel 文件
+                    using (var stream = File.Open(file, FileMode.Open, FileAccess.Read))
+                    using (var reader = ExcelReaderFactory.CreateReader(stream))
                     {
-                        Debug.LogWarning($"[警告] 文件 {file} 格式不正确，缺少类型行。");
-                        continue;
+                        propertyNames = new List<string>();
+                        propertyTypes = new List<string>();
+
+                        bool isHeader = true;
+                        while (reader.Read())
+                        {
+                            if (isHeader)
+                            {
+                                for (int i = 0; i < reader.FieldCount; i++)
+                                {
+                                    propertyNames.Add(reader.GetString(i)?.Trim() ?? string.Empty);
+                                }
+                                isHeader = false;
+                            }
+                            else
+                            {
+                                for (int i = 0; i < reader.FieldCount; i++)
+                                {
+                                    propertyTypes.Add(reader.GetString(i)?.Trim() ?? "string");
+                                }
+                                break;
+                            }
+                        }
                     }
-
-                    // 获取类型数据
-                    var propertyTypes = new List<string>();
-                    foreach (var header in propertyNames)
-                    {
-                        propertyTypes.Add(csv.GetField(header));
-                    }
-
-                    if (propertyNames.Count != propertyTypes.Count)
-                    {
-                        Debug.LogWarning($"[警告] 文件 {file} 属性名和类型数量不一致。");
-                        continue;
-                    }
-
-                    // 生成类
-                    string className = Path.GetFileNameWithoutExtension(file);
-                    string classDef = $"[MemoryPackable]\npublic partial class {className} {{\n";
-
-                    List<GenCodeProp> props = new();
-
-                    for (int i = 0; i < propertyNames.Count; i++)
-                    {
-                        string propName = ReadConfEditorUtil.ToCamelLower(propertyNames[i]);
-                        string propType = MapCsvTypeToCSharpType(propertyTypes[i]);
-
-                        classDef += $"    public {propType} {propName};\n";
-
-                        props.Add(new GenCodeProp { name = propName, propType = propType });
-                    }
-
-                    classDef += "}\n\n";
-
-                    string classFieldName = char.ToLower(className[0]) + className[1..];
-                    fieldStr += $"    public {className}[] {classFieldName};\n";
-                    defStr += classDef;
-                    
-                    // 生成 XXXRacastSet 和 XXXRacast 类文件
-                    string racastSetClass = "using System.Collections.Generic;\nusing System.Linq;\n"
-                                             +$"public struct {className}RacastSet : IRacastSet\n" +
-                                             "{\n" +
-                                             $"    public Dictionary<int, {className}Racast> dic;\n" +
-                                             $"    public {className}RacastSet(ConfData data)\n" +
-                                             "    {\n" +
-                                             $"        dic = (from es in data.{classFieldName}\n" +
-                                             $"               let esr = new {className}Racast(es)\n" +
-                                             "               select esr).ToDictionary(esr => esr.sourceConf.id);\n" +
-                                             "    }\n" +
-                                             "}\n";
-
-                    string racastClass = $"public class {className}Racast\n" +
-                                         "{\n" +
-                                         $"    public {className} sourceConf;\n\n" +
-                                         $"    public {className}Racast({className} sourceConf)\n" +
-                                         "    {\n" +
-                                         "        this.sourceConf = sourceConf;\n" +
-                                         "    }\n" +
-                                         "}\n\n";
-                    
-                    string racastSetFilePath = Path.Combine(Application.dataPath + ResEditorConfig.Racast_Path, $"{className}RacastSet.cs");
-                    File.WriteAllText(racastSetFilePath, racastSetClass + racastClass);
-
-                    result.classes.Add(new ClassContent
-                    {
-                        className = className,
-                        fileName = className,
-                        CsvPath = file.Replace("/", "\\"),
-                        classDef = classDef,
-                        props = props,
-                    });
+                }
+                else
+                {
+                    Debug.LogWarning($"[警告] 文件 {file} 格式不支持。");
+                    continue;
                 }
 
+                if (propertyNames.Count != propertyTypes.Count)
+                {
+                    Debug.LogWarning($"[警告] 文件 {file} 属性名和类型数量不一致。");
+                    continue;
+                }
+
+                string className = Path.GetFileNameWithoutExtension(file);
+                className = ReadConfEditorUtil.ToCamelUpper(className);
+                string classDef = $"[MemoryPackable]\npublic partial class {className} {{\n";
+
+                List<GenCodeProp> props = new();
+
+                for (int i = 0; i < propertyNames.Count; i++)
+                {
+                    string propName = ReadConfEditorUtil.ToCamelLower(propertyNames[i]);
+                    string propType = MapCsvTypeToCSharpType(propertyTypes[i]);
+
+                    classDef += $"    public {propType} {propName};\n";
+
+                    props.Add(new GenCodeProp { name = propName, propType = propType });
+                }
+
+                classDef += "}\n\n";
+
+                string classFieldName = char.ToLower(className[0]) + className[1..];
+                fieldStr += $"    public {className}[] {classFieldName};\n";
+                defStr += classDef;
+
+                // 生成 XXXRacastSet 和 XXXRacast 类文件
+                string racastSetClass = "using System.Collections.Generic;\nusing System.Linq;\n"
+                                         + $"public struct {className}RacastSet : IRacastSet\n" +
+                                         "{\n" +
+                                         $"    public Dictionary<int, {className}Racast> dic;\n" +
+                                         $"    public {className}RacastSet(ConfData data)\n" +
+                                         "    {\n" +
+                                         $"        dic = (from es in data.{classFieldName}\n" +
+                                         $"               let esr = new {className}Racast(es)\n" +
+                                         "               select esr).ToDictionary(esr => esr.sourceConf.id);\n" +
+                                         "    }\n" +
+                                         "}\n";
+
+                string racastClass = $"public class {className}Racast\n" +
+                                     "{\n" +
+                                     $"    public {className} sourceConf;\n\n" +
+                                     $"    public {className}Racast({className} sourceConf)\n" +
+                                     "    {\n" +
+                                     "        this.sourceConf = sourceConf;\n" +
+                                     "    }\n" +
+                                     "}\n\n";
+
+                string racastSetFilePath = Path.Combine(Application.dataPath + ResEditorConfig.Racast_Path, $"{className}RacastSet.cs");
+                File.WriteAllText(racastSetFilePath, racastSetClass + racastClass);
+
+                result.classes.Add(new ClassContent
+                {
+                    className = className,
+                    fileName = className,
+                    FilePath = file.Replace("/", "\\"),
+                    classDef = classDef,
+                    props = props,
+                });
             }
 
             codeStr = tip + codeStr;
@@ -145,8 +185,10 @@ namespace ReadConf
                 "string" => "string",
                 "long" => "long",
                 "int[]" => "int[]",
-                "string[]" => "string[]",
-                _ => "string", // 默认类型
+                "float" => "float",
+                "double" => "double",
+                "bool" => "bool",
+                _ => "string",
             };
         }
     }
@@ -161,7 +203,7 @@ namespace ReadConf
     {
         public string className;
         public string fileName;
-        public string CsvPath;
+        public string FilePath;
         public string classDef;
         public List<GenCodeProp> props;
     }
@@ -170,5 +212,4 @@ namespace ReadConf
     {
         public List<ClassContent> classes;
     }
-
 }
