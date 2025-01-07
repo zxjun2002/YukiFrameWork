@@ -22,7 +22,7 @@ public class EventCenter : IEventCenter
         var existingActions = _eventDic[eventType];
         if (existingActions != null && Array.Exists(existingActions.GetInvocationList(), d => d == (Delegate)action))
         {
-            UnityEngine.Debug.LogWarning($"重复的事件监听器：{eventType}");
+            GameLogger.LogWarning($"重复的事件监听器：{eventType}");
             return;
         }
 
