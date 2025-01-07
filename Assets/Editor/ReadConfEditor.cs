@@ -7,6 +7,7 @@ using System.IO;
 using System.Text;
 using CsvHelper;
 using CsvHelper.Configuration;
+using Newtonsoft.Json;
 
 namespace ReadConf
 {
@@ -38,8 +39,8 @@ namespace ReadConf
                 System.Reflection.FieldInfo[] subFields = fieldType.GetFields();
 
                 string className = char.ToUpper(field.Name[0]) + field.Name[1..];
-                //UnityEngine.Debug.Log("--- " + className);
-
+                
+                // 从生成的内容中找到对应的 ClassContent
                 ClassContent cc =
                     (from cc_ in content.classes
                         where cc_.className == className
@@ -70,6 +71,13 @@ namespace ReadConf
                           for (int i = 0; i < headerNames.Length; i++)
                           {
                               headerNames[i] = ReadConfEditorUtil.ToCamelLower(headerNames[i]);
+                          }
+                          
+                          // 跳过类型行（第二行）
+                          if (!csv.Read())
+                          {
+                              UnityEngine.Debug.LogWarning($"文件 {filePath} 缺少数据行，跳过解析");
+                              continue;
                           }
 
                           // 动态列表存储结果
@@ -132,20 +140,33 @@ namespace ReadConf
         {
             if (string.IsNullOrWhiteSpace(value)) return GetDefaultValue(targetType);
 
-            if (targetType == typeof(int))
-                return int.TryParse(value, out int intVal) ? intVal : 0;
+            try
+            {
+                if (targetType == typeof(int))
+                    return int.TryParse(value, out int intVal) ? intVal : 0;
 
-            if (targetType == typeof(long))
-                return long.TryParse(value, out long longVal) ? longVal : 0L;
+                if (targetType == typeof(long))
+                    return long.TryParse(value, out long longVal) ? longVal : 0L;
 
-            if (targetType == typeof(float))
-                return float.TryParse(value, out float floatVal) ? floatVal : 0f;
+                if (targetType == typeof(float))
+                    return float.TryParse(value, out float floatVal) ? floatVal : 0f;
 
-            if (targetType == typeof(double))
-                return double.TryParse(value, out double doubleVal) ? doubleVal : 0d;
+                if (targetType == typeof(double))
+                    return double.TryParse(value, out double doubleVal) ? doubleVal : 0d;
 
-            if (targetType == typeof(bool))
-                return bool.TryParse(value, out bool boolVal) ? boolVal : false;
+                if (targetType == typeof(bool))
+                    return bool.TryParse(value, out bool boolVal) ? boolVal : false;
+
+                if (targetType == typeof(int[]))
+                {
+                    // 手动解析整数数组
+                    return ParseIntArray(value);
+                }
+            }
+            catch (Exception ex)
+            {
+                UnityEngine.Debug.LogError($"ConvertValue 解析失败: 值 \"{value}\" 无法转换为 {targetType.Name} 类型。错误: {ex.Message}");
+            }
 
             return value; // 默认作为字符串返回
         }
@@ -154,6 +175,27 @@ namespace ReadConf
         private static object GetDefaultValue(Type type)
         {
             return type.IsValueType ? Activator.CreateInstance(type) : null;
+        }
+
+        // 辅助方法：手动解析整数数组
+        private static int[] ParseIntArray(string value)
+        {
+            value = value.Trim();
+            if (value.StartsWith("[") && value.EndsWith("]"))
+            {
+                // 去掉头尾的方括号
+                value = value.Substring(1, value.Length - 2).Trim();
+            }
+
+            // 按逗号分隔，并尝试将每个元素解析为整数
+            return value.Split(',')
+                .Select(s =>
+                {
+                    if (int.TryParse(s.Trim(), out int intVal))
+                        return intVal;
+                    return 0; // 默认值为 0
+                })
+                .ToArray();
         }
     }
 

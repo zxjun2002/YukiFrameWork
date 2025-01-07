@@ -5,7 +5,6 @@ using System.IO;
 using System.Linq;
 using CsvHelper;
 using CsvHelper.Configuration;
-using UnityEditor;
 
 namespace ReadConf
 {
@@ -15,7 +14,6 @@ namespace ReadConf
     
     public static class GenCodeEditor
     {
-        [MenuItem("Tool/生成代码")]
         public static GenCodeContent DoGenConfCode()
         {
             string[] files = Directory.GetFiles(Application.dataPath + ResEditorConfig.CSV_Path, "*.csv", SearchOption.AllDirectories);

@@ -16,6 +16,5 @@ public partial class Item {
     public long itemPid;
     public string itemJson;
     public int[] itemList;
-    public string[] itemDesList;
 }
 

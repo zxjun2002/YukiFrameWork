@@ -1,27 +1,8 @@
-"id","item_name","item_pid","item_json","item_list","item_des_list"
-"int","string","long","string","int[]","string[]"
-"1001","背带裤","10000198","{
-    "name": "Json.CN",
-    "url": "http://www.json.cn",
-    "page": 88,
-    "isNonProfit": true,
-    "address": {
-        "street": "科技园路.",
-        "city": "江苏苏州",
-        "country": "中国"
-    },
-    "links": [
-        {
-            "name": "Google",
-            "url": "http://www.google.com"
-        },
-        {
-            "name": "Baidu",
-            "url": "http://www.baidu.com"
-        },
-        {
-            "name": "SoSo",
-            "url": "http://www.SoSo.com"
-        }
-    ]
-}","[1,2,3,4,5]","["a","b","c"]"
+id,item_name,item_pid,item_json,item_list
+int,string,long,string,int[]
+1001,背带裤,10000198,"{
+    ""name"": ""Json.CN"",
+    ""url"": ""http://www.json.cn"",
+    ""page"": 88,
+    ""isNonProfit"": true
+}","[1,2,3]"
