@@ -9,6 +9,7 @@ public class GameSettingMgr : InjectableMonoBehaviour
     [Autowired] private PetRepository petRepository;
     [Autowired] private IConfigTable configTable;
     [Autowired] private IEventCenter eventCenter;
+    [Autowired] private DeviceAppService deviceAppService;
     /// <summary>
     /// 这是一个Unity特有的属性，用于指定Initialize方法作为运行时初始化方法，
     /// 在场景加载之前执行。这意味着，无论场景如何改变，Initialize方法都会在场景加载之前被调用一次。
@@ -21,6 +22,7 @@ public class GameSettingMgr : InjectableMonoBehaviour
     
     protected override async void OnStart()
     {
+        
         eventCenter.AddEventListener(CustomEventType.TestEventWithParam,TestEventWithParam);
         configTable.Init(ResEditorConfig.ConfsAsset_Path);
         petRepository.Init();
