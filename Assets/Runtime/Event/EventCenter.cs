@@ -14,7 +14,10 @@ public class EventCenter : IEventCenter
     /// </summary>
     public void AddEventListener(Enum eventType, UnityAction<BaseEventData> action)
     {
-        _eventDic.TryAdd(eventType, null);
+        if (!_eventDic.ContainsKey(eventType))
+        {
+            _eventDic[eventType] = null;
+        }
 
         var existingActions = _eventDic[eventType];
         if (existingActions != null && Array.Exists(existingActions.GetInvocationList(), d => d == (Delegate)action))
