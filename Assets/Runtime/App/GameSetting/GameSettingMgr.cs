@@ -23,7 +23,7 @@ public class GameSettingMgr : InjectableMonoBehaviour
     
     protected override async void OnStart()
     {
-        
+        deviceAppService.Init();
         eventCenter.AddEventListener(CustomEventType.TestEventWithParam,TestEventWithParam);
         configTable.Init(ResEditorConfig.ConfsAsset_Path);
         petRepository.Init();
