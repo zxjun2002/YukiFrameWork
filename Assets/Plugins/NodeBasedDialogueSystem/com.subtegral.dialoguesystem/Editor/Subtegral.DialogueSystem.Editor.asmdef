@@ -1,0 +1,16 @@
+{
+    "name": "Subtegral.DialogueSystem.Editor",
+    "rootNamespace": "",
+    "references": [
+        "GUID:8514c8736cc06cb4cade6ffcb6769255"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

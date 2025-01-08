@@ -93,7 +93,7 @@ public class UGUIScriptGenerator : EditorWindow
             {
                 // 获取字段的值（UI 元素）
                 var fieldValue = field.GetValue(basePanel);
-                if (fieldValue != null)
+                if (fieldValue != null && !fieldValue.Equals(null))
                 {
                     if (fieldValue is Component component)
                     {
