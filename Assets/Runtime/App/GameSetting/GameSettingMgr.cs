@@ -2,6 +2,7 @@ using Cysharp.Threading.Tasks;
 using Domain;
 using MIKUFramework.IOC;
 using UnityEngine;
+using YuKi;
 
 public class GameSettingMgr : InjectableMonoBehaviour
 {
@@ -30,6 +31,7 @@ public class GameSettingMgr : InjectableMonoBehaviour
         GameLogger.LogGreen(configTable.GetConfig<EffectCtRacastSet>().dic[102].sourceConf.effectVal);
         await UniTask.DelayFrame(500);
         eventCenter.EventTrigger(new StringEventData(CustomEventType.TestEventWithParam,configTable.GetConfig<BuffCtRacastSet>().dic[102].sourceConf.buffName));
+        uiManager.OpenPanel<AUIPanel>();
     }
     
     private void TestEventWithParam(BaseEventData eventData)
