@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using UnityEditor;
 using UnityEditor.Experimental.GraphView;
@@ -48,8 +49,36 @@ namespace Subtegral.DialogueSystem.Editor
             toolbar.Add(new Button(() => RequestDataOperation(true)) {text = "Save Data"});
 
             toolbar.Add(new Button(() => RequestDataOperation(false)) {text = "Load Data"});
+            
+            // 新增的按钮：选择文件加载
+            toolbar.Add(new Button(OpenFileAndLoadData) {text = "Select File and Load Data"});
             // toolbar.Add(new Button(() => _graphView.CreateNewDialogueNode("Dialogue Node")) {text = "New Node",});
             rootVisualElement.Add(toolbar);
+        }
+        
+        private void OpenFileAndLoadData()
+        {
+            // 打开文件对话框，让用户选择文件
+            string path = EditorUtility.OpenFilePanel("Select Dialogue Data File", "Assets/Resources", "asset");
+
+            if (!string.IsNullOrEmpty(path))
+            {
+                // 将路径转换为相对路径
+                string relativePath = path.Replace(Application.dataPath, "Assets");
+                DialogueContainer container = AssetDatabase.LoadAssetAtPath<DialogueContainer>(relativePath);
+
+                if (container != null)
+                {
+                    // 将文件名设置为相对路径中的文件名（无后缀）
+                    _fileName = Path.GetFileNameWithoutExtension(path);
+                    var saveUtility = GraphSaveUtility.GetInstance(_graphView);
+                    saveUtility.LoadNarrative(_fileName); // 加载数据
+                }
+                else
+                {
+                    EditorUtility.DisplayDialog("Error", "The selected file is not a valid DialogueContainer.", "OK");
+                }
+            }
         }
 
         private void RequestDataOperation(bool save)
