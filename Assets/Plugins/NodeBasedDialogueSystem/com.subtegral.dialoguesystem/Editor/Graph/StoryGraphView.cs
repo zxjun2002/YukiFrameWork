@@ -70,8 +70,24 @@ namespace Subtegral.DialogueSystem.Editor
                 autoUpdateGeometry = true,
                 title = commentBlockData.Title
             };
-            AddElement(group);
+            
+            // 重写 Group 的标题更新逻辑
+            group.RegisterCallback<FocusOutEvent>(evt =>
+            {
+                string oldTitle = commentBlockData.Title;
+                string newTitle = group.title;
+
+                if (oldTitle != newTitle)
+                {
+                    commentBlockData.Title = newTitle; // 更新 CommentBlock 数据
+                    _onGraphChanged?.Invoke(); // 通知保存
+                }
+            });
+            
+            AddElement(group);// 添加 CommentBlock 到图表
             group.SetPosition(rect);
+            
+            _onGraphChanged?.Invoke(); // 通知新建 CommentBlock 的变更
             return group;
         }
 

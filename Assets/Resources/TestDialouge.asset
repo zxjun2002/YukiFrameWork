@@ -19,12 +19,32 @@ MonoBehaviour:
   - BaseNodeGUID: a1cafb89-b2cb-4808-8ad0-56a22c3f7acf
     PortName: "\u9009\u98791"
     TargetNodeGUID: 8f6fe6cc-f45d-402a-ac60-22da435d22b3
+  - BaseNodeGUID: a1cafb89-b2cb-4808-8ad0-56a22c3f7acf
+    PortName: "\u9009\u98792"
+    TargetNodeGUID: e070b804-0438-493d-a6f4-649c60819930
+  - BaseNodeGUID: e070b804-0438-493d-a6f4-649c60819930
+    PortName: "\u7EE7\u7EED"
+    TargetNodeGUID: 63bc44ae-0862-48db-8fee-dc1b59ded604
+  - BaseNodeGUID: 8f6fe6cc-f45d-402a-ac60-22da435d22b3
+    PortName: "\u7EE7\u7EED"
+    TargetNodeGUID: 63bc44ae-0862-48db-8fee-dc1b59ded604
   DialogueNodeData:
   - NodeGUID: a1cafb89-b2cb-4808-8ad0-56a22c3f7acf
     DialogueText: "\u6D4B\u8BD5\u4E00\u4E0B"
-    Position: {x: 395, y: 229}
+    Position: {x: 425, y: 218}
+  - NodeGUID: e070b804-0438-493d-a6f4-649c60819930
+    DialogueText: "\u5BC4\u4E86"
+    Position: {x: 793, y: 307}
+  - NodeGUID: 63bc44ae-0862-48db-8fee-dc1b59ded604
+    DialogueText: "\u54C8\u54C8\u9A97\u4F60\u7684"
+    Position: {x: 1054, y: 211}
   - NodeGUID: 8f6fe6cc-f45d-402a-ac60-22da435d22b3
     DialogueText: "\u6210\u529F"
-    Position: {x: 780, y: 242}
+    Position: {x: 802, y: 152}
   ExposedProperties: []
-  CommentBlockData: []
+  CommentBlockData:
+  - ChildNodes:
+    - e070b804-0438-493d-a6f4-649c60819930
+    - 8f6fe6cc-f45d-402a-ac60-22da435d22b3
+    Position: {x: 768, y: 90}
+    Title: "\u6765\u505A\u51FA\u4F60\u7684\u9009\u62E9\u5427"
