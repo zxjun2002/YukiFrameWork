@@ -172,21 +172,23 @@ namespace Subtegral.DialogueSystem.Editor
 
         public void AddChoicePort(DialogueNode nodeCache, string overriddenPortName = "")
         {
+            // 创建新的输出端口
             var generatedPort = GetPortInstance(nodeCache, Direction.Output);
             var portLabel = generatedPort.contentContainer.Q<Label>("type");
             generatedPort.contentContainer.Remove(portLabel);
-
+            // 设置输出端口的名称
             var outputPortCount = nodeCache.outputContainer.Query("connector").ToList().Count();
             var outputPortName = string.IsNullOrEmpty(overriddenPortName)
                 ? $"Option {outputPortCount + 1}"
                 : overriddenPortName;
 
-
+            // 添加一个文本框以允许用户编辑选项名称
             var textField = new TextField()
             {
                 name = string.Empty,
                 value = outputPortName
             };
+            textField.style.flexDirection = FlexDirection.Column;
             textField.RegisterValueChangedCallback(evt =>
             {
                 generatedPort.portName = evt.newValue;

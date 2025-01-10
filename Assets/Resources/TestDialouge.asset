@@ -16,12 +16,15 @@ MonoBehaviour:
   - BaseNodeGUID: b51a8aec-7735-4756-a893-15a82019adde
     PortName: Next
     TargetNodeGUID: a1cafb89-b2cb-4808-8ad0-56a22c3f7acf
+  - BaseNodeGUID: a1cafb89-b2cb-4808-8ad0-56a22c3f7acf
+    PortName: "\u9009\u98791"
+    TargetNodeGUID: 8f6fe6cc-f45d-402a-ac60-22da435d22b3
   DialogueNodeData:
   - NodeGUID: a1cafb89-b2cb-4808-8ad0-56a22c3f7acf
     DialogueText: "\u6D4B\u8BD5\u4E00\u4E0B"
-    Position: {x: 310, y: 200}
+    Position: {x: 395, y: 229}
   - NodeGUID: 8f6fe6cc-f45d-402a-ac60-22da435d22b3
-    DialogueText: Dialogue Node
-    Position: {x: 0, y: 0}
+    DialogueText: "\u6210\u529F"
+    Position: {x: 780, y: 242}
   ExposedProperties: []
   CommentBlockData: []
