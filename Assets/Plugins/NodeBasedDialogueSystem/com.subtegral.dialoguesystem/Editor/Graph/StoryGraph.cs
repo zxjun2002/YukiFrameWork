@@ -18,6 +18,7 @@ namespace Subtegral.DialogueSystem.Editor
 
         private StoryGraphView _graphView;
         private DialogueContainer _dialogueContainer;
+        private bool _hasUnsavedChanges = false; // 标记是否有未保存的更改
 
         [MenuItem("Graph/Narrative Graph")]
         public static void CreateGraphViewWindow()
@@ -33,6 +34,28 @@ namespace Subtegral.DialogueSystem.Editor
                 name = "Narrative Graph",
             };
             _graphView.StretchToParentSize();
+
+            // 监听节点或边缘的增删操作
+            _graphView.graphViewChanged = changes =>
+            {
+                if (changes.elementsToRemove != null && changes.elementsToRemove.Any())
+                {
+                    MarkAsDirty();
+                }
+
+                if (changes.edgesToCreate != null && changes.edgesToCreate.Any())
+                {
+                    MarkAsDirty();
+                }
+
+                if (changes.movedElements != null && changes.movedElements.Any())
+                {
+                    MarkAsDirty();
+                }
+
+                return changes;
+            };
+
             rootVisualElement.Add(_graphView);
         }
 
@@ -46,8 +69,12 @@ namespace Subtegral.DialogueSystem.Editor
             fileNameTextField.RegisterValueChangedCallback(evt => _fileName = evt.newValue);
             toolbar.Add(fileNameTextField);
 
-            toolbar.Add(new Button(() => RequestDataOperation(true)) {text = "Save Data"});
-
+            toolbar.Add(new Button(() =>
+            {
+                RequestDataOperation(true);
+                _hasUnsavedChanges = false; // 保存后重置标记
+            }) { text = "Save Data" });
+            
             toolbar.Add(new Button(() => RequestDataOperation(false)) {text = "Load Data"});
             
             // 新增的按钮：选择文件加载
@@ -73,6 +100,9 @@ namespace Subtegral.DialogueSystem.Editor
                     _fileName = Path.GetFileNameWithoutExtension(path);
                     var saveUtility = GraphSaveUtility.GetInstance(_graphView);
                     saveUtility.LoadNarrative(_fileName); // 加载数据
+
+                    titleContent.text = _fileName; // 更新标题
+                    _hasUnsavedChanges = false; // 加载后没有未保存更改
                 }
                 else
                 {
@@ -87,9 +117,17 @@ namespace Subtegral.DialogueSystem.Editor
             {
                 var saveUtility = GraphSaveUtility.GetInstance(_graphView);
                 if (save)
+                {
                     saveUtility.SaveGraph(_fileName);
+                    _hasUnsavedChanges = false; // 保存后重置标记
+                    titleContent.text = _fileName; // 移除标题上的星号
+                }
                 else
+                {
                     saveUtility.LoadNarrative(_fileName);
+                    titleContent.text = _fileName; // 更新标题
+                    _hasUnsavedChanges = false; // 加载后没有未保存更改
+                }
             }
             else
             {
@@ -142,7 +180,26 @@ namespace Subtegral.DialogueSystem.Editor
 
         private void OnDisable()
         {
+            if (_hasUnsavedChanges) // 检查是否有未保存的更改
+            {
+                bool saveChanges = EditorUtility.DisplayDialog(
+                    "Unsaved Changes",
+                    "You have unsaved changes. Would you like to save before exiting?",
+                    "Save", "Don't Save");
+
+                if (saveChanges)
+                {
+                    RequestDataOperation(true); // 调用保存逻辑
+                }
+            }
+
             rootVisualElement.Remove(_graphView);
+        }
+        
+        public void MarkAsDirty()
+        {
+            _hasUnsavedChanges = true; // 标记为有未保存的更改
+            titleContent.text = $"{(string.IsNullOrEmpty(_fileName) ? "Narrative Graph" : _fileName)}*";
         }
     }
 }

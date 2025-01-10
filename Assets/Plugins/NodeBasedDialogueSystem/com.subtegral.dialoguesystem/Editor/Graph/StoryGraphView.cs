@@ -20,6 +20,8 @@ namespace Subtegral.DialogueSystem.Editor
         public Blackboard Blackboard = new Blackboard();
         public List<ExposedProperty> ExposedProperties { get; private set; } = new List<ExposedProperty>();
         private NodeSearchWindow _searchWindow;
+        //有变更的回调
+        private Action _onGraphChanged;
 
         public StoryGraphView(StoryGraph editorWindow)
         {
@@ -38,6 +40,9 @@ namespace Subtegral.DialogueSystem.Editor
             AddElement(GetEntryPointNodeInstance());
 
             AddSearchWindow(editorWindow);
+            
+            // 从 StoryGraph 注册回调
+            _onGraphChanged = editorWindow.MarkAsDirty;
         }
 
 
@@ -145,15 +150,22 @@ namespace Subtegral.DialogueSystem.Editor
             {
                 tempDialogueNode.DialogueText = evt.newValue;
                 tempDialogueNode.title = evt.newValue;
+                _onGraphChanged?.Invoke(); // 通知变更
             });
             textField.SetValueWithoutNotify(tempDialogueNode.title);
             tempDialogueNode.mainContainer.Add(textField);
 
-            var button = new Button(() => { AddChoicePort(tempDialogueNode); })
+            var button = new Button(() =>
+            {
+                AddChoicePort(tempDialogueNode);
+                _onGraphChanged?.Invoke(); // 通知更改
+            })
             {
                 text = "Add Choice"
             };
             tempDialogueNode.titleButtonContainer.Add(button);
+            
+            _onGraphChanged?.Invoke(); // 新建节点后立即通知变更
             return tempDialogueNode;
         }
 
@@ -175,10 +187,18 @@ namespace Subtegral.DialogueSystem.Editor
                 name = string.Empty,
                 value = outputPortName
             };
-            textField.RegisterValueChangedCallback(evt => generatedPort.portName = evt.newValue);
+            textField.RegisterValueChangedCallback(evt =>
+            {
+                generatedPort.portName = evt.newValue;
+                _onGraphChanged?.Invoke(); // 通知变更
+            });
             generatedPort.contentContainer.Add(new Label("  "));
             generatedPort.contentContainer.Add(textField);
-            var deleteButton = new Button(() => RemovePort(nodeCache, generatedPort))
+            var deleteButton = new Button(() =>
+            {
+                RemovePort(nodeCache, generatedPort);
+                _onGraphChanged?.Invoke(); // 通知更改
+            })
             {
                 text = "X"
             };
@@ -187,6 +207,8 @@ namespace Subtegral.DialogueSystem.Editor
             nodeCache.outputContainer.Add(generatedPort);
             nodeCache.RefreshPorts();
             nodeCache.RefreshExpandedState();
+            
+            _onGraphChanged?.Invoke(); // 添加端口后通知变更
         }
 
         private void RemovePort(Node node, Port socket)

@@ -18,7 +18,10 @@ MonoBehaviour:
     TargetNodeGUID: a1cafb89-b2cb-4808-8ad0-56a22c3f7acf
   DialogueNodeData:
   - NodeGUID: a1cafb89-b2cb-4808-8ad0-56a22c3f7acf
-    DialogueText: "\u6D4B\u8BD5\u6570\u636E"
+    DialogueText: "\u6D4B\u8BD5\u4E00\u4E0B"
     Position: {x: 310, y: 200}
+  - NodeGUID: 8f6fe6cc-f45d-402a-ac60-22da435d22b3
+    DialogueText: Dialogue Node
+    Position: {x: 0, y: 0}
   ExposedProperties: []
   CommentBlockData: []
