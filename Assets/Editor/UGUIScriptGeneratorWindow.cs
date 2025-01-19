@@ -699,7 +699,7 @@ public class UIElement
             return Array.Empty<string>();
 
         return uiObject.GetComponents<Component>()
-            .Select(c => c.GetType().Name).Prepend("GameObject")
+            .Select(c => c.GetType().Name).Prepend("GameObject").Prepend("Transform")
             .ToArray();
     }
     //根据优先级队列获取组件名字
