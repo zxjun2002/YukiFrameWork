@@ -14,7 +14,6 @@ public class HyperlinkHandler : MonoBehaviour, IPointerClickHandler
 
     public void OnPointerClick(PointerEventData eventData)
     {
-        
         // 使用 PointerEventData 的点击位置
         Vector2 localMousePosition;
         RectTransformUtility.ScreenPointToLocalPointInRectangle(

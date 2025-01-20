@@ -1017,7 +1017,8 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: "<link=\"help\">\u70B9\u51FB\u8FD9\u91CC\u83B7\u53D6\u5E2E\u52A9</link>"
+  m_text: "<link=\"help\">\u70B9\u51FB\u8FD9\u91CC\u83B7\u53D6\u5E2E\u52A9</link> 
+    <sprite=9>"
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: df23309bed7e655428cdcafe113ff0df, type: 2}
   m_sharedMaterial: {fileID: -7607534747008639902, guid: df23309bed7e655428cdcafe113ff0df,
