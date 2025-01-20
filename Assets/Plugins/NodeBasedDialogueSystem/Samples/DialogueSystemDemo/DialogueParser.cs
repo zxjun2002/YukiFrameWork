@@ -28,6 +28,7 @@ namespace Subtegral.DialogueSystem.Runtime
 
         private void Start()
         {
+            dialogue.SetValue("Name","蔡徐坤");
             // 获取对话的入口节点（Entrypoint），即对话的开始点。
             var narrativeData = dialogue.NodeLinks.First(); // 找到第一个链接，通常是入口节点。
             // 进入指定节点的对话内容。
