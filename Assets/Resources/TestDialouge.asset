@@ -30,7 +30,7 @@ MonoBehaviour:
     TargetNodeGUID: 63bc44ae-0862-48db-8fee-dc1b59ded604
   DialogueNodeData:
   - NodeGUID: a1cafb89-b2cb-4808-8ad0-56a22c3f7acf
-    DialogueText: "\u6D4B\u8BD5\u4E00\u4E0B"
+    DialogueText: "\u6D4B\u8BD5\u4E00\u4E0B[Name]"
     Position: {x: 425, y: 218}
   - NodeGUID: e070b804-0438-493d-a6f4-649c60819930
     DialogueText: "\u5BC4\u4E86"
@@ -42,12 +42,8 @@ MonoBehaviour:
     DialogueText: "\u6210\u529F"
     Position: {x: 802, y: 152}
   ExposedProperties:
-  - PropertyName: Name4
-    PropertyValue: "\u8521\u5F90\u5764"
-  - PropertyName: Name5
-    PropertyValue: "\u5F90\u5764\u8521"
-  - PropertyName: Name7
-    PropertyValue: New Value
+  - PropertyName: Name
+    PropertyValue: "<color=red>\u7EA2\u8272\u6587\u672C</color>"
   CommentBlockData:
   - ChildNodes:
     - e070b804-0438-493d-a6f4-649c60819930
