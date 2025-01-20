@@ -1,12 +1,9 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using Subtegral.DialogueSystem.DataContainers;
-using UnityEditor;
 using UnityEditor.Experimental.GraphView;
 using UnityEngine;
-using UnityEngine.UI;
 using UnityEngine.UIElements;
 using Button = UnityEngine.UIElements.Button;
 
@@ -95,20 +92,40 @@ namespace Subtegral.DialogueSystem.Editor
         {
             var localPropertyName = property.PropertyName;
             var localPropertyValue = property.PropertyValue;
-            if (!loadMode)
+            // 在加载模式下跳过重复添加
+            if (!loadMode && ExposedProperties.Any(x => x.PropertyName == localPropertyName))
             {
+                int suffix = 1;
                 while (ExposedProperties.Any(x => x.PropertyName == localPropertyName))
-                    localPropertyName = $"{localPropertyName}(1)";
+                {
+                    localPropertyName = $"{property.PropertyName}({suffix++})";
+                }
+            }
+            
+            // 确保 ExposedProperties 中包含该属性
+            if (!ExposedProperties.Contains(property))
+            {
+                ExposedProperties.Add(new ExposedProperty
+                {
+                    PropertyName = localPropertyName,
+                    PropertyValue = localPropertyValue
+                });
             }
 
-            var item = ExposedProperty.CreateInstance();
-            item.PropertyName = localPropertyName;
-            item.PropertyValue = localPropertyValue;
-            ExposedProperties.Add(item);
-
             var container = new VisualElement();
-            var field = new BlackboardField {text = localPropertyName, typeText = "string"};
+            var field = new BlackboardField { text = localPropertyName, typeText = "string" };
             container.Add(field);
+
+            // 添加右键菜单
+            field.AddManipulator(new ContextualMenuManipulator(evt =>
+            {
+                evt.menu.AppendAction("Delete", action =>
+                {
+                    ExposedProperties.RemoveAll(x => x.PropertyName == localPropertyName);
+                    Blackboard.Remove(container);
+                    _onGraphChanged?.Invoke(); // 触发保存提示
+                });
+            }));
 
             var propertyValueTextField = new TextField("Value:")
             {
@@ -116,12 +133,15 @@ namespace Subtegral.DialogueSystem.Editor
             };
             propertyValueTextField.RegisterValueChangedCallback(evt =>
             {
-                var index = ExposedProperties.FindIndex(x => x.PropertyName == item.PropertyName);
+                var index = ExposedProperties.FindIndex(x => x.PropertyName == localPropertyName);
                 ExposedProperties[index].PropertyValue = evt.newValue;
+                _onGraphChanged?.Invoke(); // 修改值时触发保存提示
             });
             var sa = new BlackboardRow(field, propertyValueTextField);
             container.Add(sa);
             Blackboard.Add(container);
+
+            _onGraphChanged?.Invoke(); // 新增变量时触发保存提示
         }
 
         public override List<Port> GetCompatiblePorts(Port startPort, NodeAdapter nodeAdapter)

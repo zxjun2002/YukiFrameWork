@@ -41,7 +41,13 @@ MonoBehaviour:
   - NodeGUID: 8f6fe6cc-f45d-402a-ac60-22da435d22b3
     DialogueText: "\u6210\u529F"
     Position: {x: 802, y: 152}
-  ExposedProperties: []
+  ExposedProperties:
+  - PropertyName: Name4
+    PropertyValue: "\u8521\u5F90\u5764"
+  - PropertyName: Name5
+    PropertyValue: "\u5F90\u5764\u8521"
+  - PropertyName: Name7
+    PropertyValue: New Value
   CommentBlockData:
   - ChildNodes:
     - e070b804-0438-493d-a6f4-649c60819930

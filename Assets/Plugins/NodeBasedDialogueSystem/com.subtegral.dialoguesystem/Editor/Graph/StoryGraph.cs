@@ -124,7 +124,11 @@ namespace Subtegral.DialogueSystem.Editor
                 }
                 else
                 {
+                    // 加载数据时，确保不会重复添加变量
                     saveUtility.LoadNarrative(_fileName);
+                    
+                    // 更新Blackboard的内容
+                    SyncBlackboardWithExposedProperties();
                     titleContent.text = _fileName; // 更新标题
                     _hasUnsavedChanges = false; // 加载后没有未保存更改
                 }
@@ -132,6 +136,28 @@ namespace Subtegral.DialogueSystem.Editor
             else
             {
                 EditorUtility.DisplayDialog("Invalid File name", "Please Enter a valid filename", "OK");
+            }
+        }
+        
+        private void SyncBlackboardWithExposedProperties()
+        {
+            // 移除Blackboard中不存在的字段
+            var existingFields = _graphView.Blackboard.Query<BlackboardField>().ToList();
+            foreach (var field in existingFields)
+            {
+                if (!_graphView.ExposedProperties.Any(prop => prop.PropertyName == field.text))
+                {
+                    _graphView.Blackboard.Remove(field);
+                }
+            }
+
+            // 添加ExposedProperties中不存在于Blackboard的字段
+            foreach (var prop in _graphView.ExposedProperties)
+            {
+                if (!existingFields.Any(field => field.text == prop.PropertyName))
+                {
+                    _graphView.AddPropertyToBlackBoard(prop, true);
+                }
             }
         }
 
@@ -161,18 +187,27 @@ namespace Subtegral.DialogueSystem.Editor
             };
             blackboard.editTextRequested = (_blackboard, element, newValue) =>
             {
-                var oldPropertyName = ((BlackboardField) element).text;
+                var oldPropertyName = ((BlackboardField)element).text;
+
+                // 检查新名称是否已存在
                 if (_graphView.ExposedProperties.Any(x => x.PropertyName == newValue))
                 {
-                    EditorUtility.DisplayDialog("Error", "This property name already exists, please chose another one.",
-                        "OK");
+                    EditorUtility.DisplayDialog("Error", "This property name already exists, please choose another one.", "OK");
                     return;
                 }
 
+                // 找到并更新变量名称
                 var targetIndex = _graphView.ExposedProperties.FindIndex(x => x.PropertyName == oldPropertyName);
-                _graphView.ExposedProperties[targetIndex].PropertyName = newValue;
-                ((BlackboardField) element).text = newValue;
+                if (targetIndex != -1)
+                {
+                    _graphView.ExposedProperties[targetIndex].PropertyName = newValue;
+                    ((BlackboardField)element).text = newValue; // 更新视图中的字段文本
+
+                    // 触发保存提示
+                    MarkAsDirty();
+                }
             };
+
             blackboard.SetPosition(new Rect(10,30,200,300));
             _graphView.Add(blackboard);
             _graphView.Blackboard = blackboard;
