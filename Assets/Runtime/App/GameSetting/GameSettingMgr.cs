@@ -25,12 +25,14 @@ public class GameSettingMgr : InjectableMonoBehaviour
     {
         deviceAppService.Init();
         eventCenter.AddEventListener(CustomEventType.TestEventWithParam,TestEventWithParam);
+        eventCenter.AddEventListener(CustomEventType.TestEventWithoutParam,TestEventWithoutParam);
         configTable.Init(ResEditorConfig.ConfsAsset_Path);
         petRepository.Init();
         petRepository.Aggs[1].PetInfo_E.SetNickname(configTable.GetConfig<ItemRacastSet>().dic[1001].sourceConf.itemName);
         GameLogger.LogGreen(configTable.GetConfig<EffectCtRacastSet>().dic[102].sourceConf.effectVal);
         await UniTask.DelayFrame(500);
         eventCenter.EventTrigger(new StringEventData(CustomEventType.TestEventWithParam,configTable.GetConfig<BuffCtRacastSet>().dic[102].sourceConf.buffName));
+        eventCenter.EventTrigger(CustomEventType.TestEventWithoutParam);
         uiManager.OpenPanel<AUIPanel>();
     }
     
@@ -40,6 +42,11 @@ public class GameSettingMgr : InjectableMonoBehaviour
         {
             GameLogger.LogGreen(data.Message);
         }
+    }
+    
+    private void TestEventWithoutParam()
+    {
+        GameLogger.LogGreen("TestEventWithoutParam");
     }
 
 }

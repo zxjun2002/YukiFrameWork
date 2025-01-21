@@ -6,57 +6,132 @@ using UnityEngine.Events;
 [Component]
 public class EventCenter : IEventCenter
 {
-    // 事件字典：存储事件类型和对应的监听器
-    private readonly Dictionary<Enum, UnityAction<BaseEventData>> _eventDic = new();
+    // 使用 Delegate 存储无参和有参事件
+    private readonly Dictionary<Enum, Delegate> _eventDic = new();
 
     /// <summary>
-    /// 添加事件监听
+    /// 添加无参事件监听
     /// </summary>
-    public void AddEventListener(Enum eventType, UnityAction<BaseEventData> action)
+    public void AddEventListener(Enum eventType, UnityAction action)
     {
-        _eventDic.TryAdd(eventType, null);
-
-        var existingActions = _eventDic[eventType];
-        if (existingActions != null && Array.Exists(existingActions.GetInvocationList(), d => d == (Delegate)action))
+        if (_eventDic.TryGetValue(eventType, out var existingDelegate))
         {
-            GameLogger.LogWarning($"重复的事件监听器：{eventType}");
-            return;
-        }
+            if (existingDelegate is UnityAction existingAction)
+            {
+                if (Array.Exists(existingAction.GetInvocationList(), d => d == (Delegate)action))
+                {
+                    GameLogger.LogWarning($"重复的无参事件监听器：{eventType}");
+                    return;
+                }
 
-        _eventDic[eventType] += action;
+                _eventDic[eventType] = existingAction + action;
+            }
+            else
+            {
+                throw new InvalidOperationException($"事件类型 {eventType} 的监听器类型不匹配。");
+            }
+        }
+        else
+        {
+            _eventDic[eventType] = action;
+        }
     }
 
     /// <summary>
-    /// 移除事件监听
+    /// 添加有参事件监听
     /// </summary>
-    public void RemoveEventListener(Enum eventType, UnityAction<BaseEventData> action)
+    public void AddEventListener(Enum eventType, UnityAction<BaseEventData> action)
     {
-        if (_eventDic.ContainsKey(eventType))
+        if (_eventDic.TryGetValue(eventType, out var existingDelegate))
         {
-            _eventDic[eventType] -= action;
+            if (existingDelegate is UnityAction<BaseEventData> existingAction)
+            {
+                if (Array.Exists(existingAction.GetInvocationList(), d => d == (Delegate)action))
+                {
+                    GameLogger.LogWarning($"重复的有参事件监听器：{eventType}");
+                    return;
+                }
 
-            // 如果没有监听器，移除该事件类型
-            if (_eventDic[eventType] == null)
+                _eventDic[eventType] = existingAction + action;
+            }
+            else
+            {
+                throw new InvalidOperationException($"事件类型 {eventType} 的监听器类型不匹配。");
+            }
+        }
+        else
+        {
+            _eventDic[eventType] = action;
+        }
+    }
+
+    /// <summary>
+    /// 移除无参事件监听
+    /// </summary>
+    public void RemoveEventListener(Enum eventType, UnityAction action)
+    {
+        if (_eventDic.TryGetValue(eventType, out var existingDelegate) && existingDelegate is UnityAction existingAction)
+        {
+            var newAction = existingAction - action;
+
+            if (newAction == null)
             {
                 _eventDic.Remove(eventType);
+            }
+            else
+            {
+                _eventDic[eventType] = newAction;
             }
         }
     }
 
     /// <summary>
-    /// 触发事件
+    /// 移除有参事件监听
     /// </summary>
-    public void EventTrigger(BaseEventData eventData)
+    public void RemoveEventListener(Enum eventType, UnityAction<BaseEventData> action)
     {
-        var eventType = eventData.EventType;
-
-        if (_eventDic.TryGetValue(eventType, out var actions))
+        if (_eventDic.TryGetValue(eventType, out var existingDelegate) && existingDelegate is UnityAction<BaseEventData> existingAction)
         {
-            actions?.Invoke(eventData);
+            var newAction = existingAction - action;
+
+            if (newAction == null)
+            {
+                _eventDic.Remove(eventType);
+            }
+            else
+            {
+                _eventDic[eventType] = newAction;
+            }
+        }
+    }
+
+    /// <summary>
+    /// 触发无参事件
+    /// </summary>
+    public void EventTrigger(Enum eventType)
+    {
+        if (_eventDic.TryGetValue(eventType, out var existingDelegate) && existingDelegate is UnityAction action)
+        {
+            action.Invoke();
         }
         else
         {
-            GameLogger.LogWarning($"未找到事件类型 {eventType} 的监听器！");
+            GameLogger.LogWarning($"未找到事件类型 {eventType} 的无参监听器！");
+        }
+    }
+
+    /// <summary>
+    /// 触发有参事件
+    /// </summary>
+    public void EventTrigger(BaseEventData eventData)
+    {
+        if (_eventDic.TryGetValue(eventData.EventType, out var existingDelegate) && existingDelegate is UnityAction<BaseEventData> action)
+        {
+            action.Invoke(eventData);
+        }
+        else
+        {
+            GameLogger.LogWarning($"未找到事件类型 {eventData.EventType} 的有参监听器！");
         }
     }
 
