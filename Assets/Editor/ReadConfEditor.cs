@@ -240,6 +240,7 @@ namespace ReadConf
                 if (targetType == typeof(double)) return double.TryParse(value, out double doubleVal) ? doubleVal : 0d;
                 if (targetType == typeof(bool)) return bool.TryParse(value, out bool boolVal) ? boolVal : false;
                 if (targetType == typeof(int[])) return ParseIntArray(value);
+                if (targetType == typeof(List<int>)) return ParseIntList(value);
             }
             catch (Exception ex)
             {
@@ -269,6 +270,18 @@ namespace ReadConf
             }
 
             return value.Split(',').Select(s => int.TryParse(s.Trim(), out int val) ? val : 0).ToArray();
+        }
+
+
+        private static List<int> ParseIntList(string value)
+        {
+            value = value.Trim();
+            if (value.StartsWith("[") && value.EndsWith("]"))
+            {
+                value = value.Substring(1, value.Length - 2);
+            }
+
+            return value.Split(',').Select(s => int.TryParse(s.Trim(), out int val) ? val : 0).ToList();
         }
     }
 

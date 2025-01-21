@@ -19,7 +19,7 @@ namespace ReadConf
 
             string tip = "/// <summary>\n/// 此代码为自动生成,修改无意义重新生成会被后覆盖\n/// </summary>\n\n";
             
-            string codeStr = "using MemoryPack;\n\n";
+            string codeStr = "using MemoryPack;\nusing System.Collections.Generic;\n\n";
 
             string fieldStr = "[MemoryPackable]\npublic partial class ConfData{\n";
             string defStr = "";
@@ -249,6 +249,7 @@ namespace ReadConf
                 "float" => "float",
                 "double" => "double",
                 "bool" => "bool",
+                "List<int>" => "List<int>",
                 _ => "string",
             };
         }

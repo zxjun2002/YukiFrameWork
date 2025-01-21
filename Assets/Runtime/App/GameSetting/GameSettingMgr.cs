@@ -28,7 +28,8 @@ public class GameSettingMgr : InjectableMonoBehaviour
         eventCenter.AddEventListener(CustomEventType.TestEventWithoutParam,TestEventWithoutParam);
         configTable.Init(ResEditorConfig.ConfsAsset_Path);
         petRepository.Init();
-        petRepository.Aggs[1].PetInfo_E.SetNickname(configTable.GetConfig<ItemRacastSet>().dic[1001].sourceConf.itemName);
+        petRepository.Aggs[1].PetInfo_E.SetNickname(configTable.GetConfig<ItemRacastSet>().dic[1001].sourceConf.itemTestList[0].ToString());
+        GameLogger.LogCyan(configTable.GetConfig<ItemRacastSet>().dic[1001].sourceConf.itemTestList[0].ToString());
         GameLogger.LogGreen(configTable.GetConfig<EffectCtRacastSet>().dic[102].sourceConf.effectVal);
         await UniTask.DelayFrame(500);
         eventCenter.EventTrigger(new StringEventData(CustomEventType.TestEventWithParam,configTable.GetConfig<BuffCtRacastSet>().dic[102].sourceConf.buffName));

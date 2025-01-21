@@ -3,6 +3,7 @@
 /// </summary>
 
 using MemoryPack;
+using System.Collections.Generic;
 
 [MemoryPackable]
 public partial class ConfData{
@@ -18,6 +19,7 @@ public partial class Item {
     public long itemPid;
     public string itemJson;
     public int[] itemList;
+    public List<int> itemTestList;
 }
 
 [MemoryPackable]
