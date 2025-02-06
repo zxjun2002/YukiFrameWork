@@ -1,4 +1,6 @@
 using System.Collections.Generic;
+using Domain;
+using MIKUFramework.IOC;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -6,6 +8,7 @@ namespace YuKi
 {
     public partial class AUIPanel : BasePanel
     {
+        [Autowired] RedPointRepository redPointRepository;
         List<UIListItemData> TestUIList_ItemDatas = new List<UIListItemData>();//定义列表项数据List
         UIListItemData SetIndexData_Item(int idx)//定义函数,获取下标对应的数据
         {
@@ -33,6 +36,9 @@ namespace YuKi
             }
             TestUIList.SetIndexData = SetIndexData_Item;
             TestUIList.SetCount(TestUIList_ItemDatas.Count);
+            redPointRepository.Agg.AddNode(RedPointKey.Play_LEVEL1_SHOP);
+            redPointRepository.Agg.AddNode(RedPointKey.Play_LEVEL1_HOME);
+            GameLogger.LogCyan(redPointRepository.Agg.GetRedpointNum(RedPointKey.Play_LEVEL1));
         }
 
         public override void OnClose()
