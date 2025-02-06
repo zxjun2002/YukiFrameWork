@@ -26,6 +26,7 @@ public class UGUIScriptGenerator : EditorWindow
     private readonly List<Type> componentPriority = new List<Type>
     {
         //TODO:新增自定义类型
+        typeof(UIList),
         typeof(Button),
         typeof(Text),
         typeof(Slider),
