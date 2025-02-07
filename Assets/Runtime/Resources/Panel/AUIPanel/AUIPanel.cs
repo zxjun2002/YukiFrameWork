@@ -4,7 +4,7 @@ using MIKUFramework.IOC;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace YuKi
+namespace Yuki
 {
     public partial class AUIPanel : BasePanel
     {

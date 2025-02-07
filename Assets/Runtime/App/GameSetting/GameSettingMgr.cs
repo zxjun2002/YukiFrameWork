@@ -2,7 +2,7 @@ using Cysharp.Threading.Tasks;
 using Domain;
 using MIKUFramework.IOC;
 using UnityEngine;
-using YuKi;
+using Yuki;
 
 public class GameSettingMgr : InjectableMonoBehaviour
 {

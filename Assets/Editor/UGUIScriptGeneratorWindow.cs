@@ -20,7 +20,7 @@ public class UGUIScriptGenerator : EditorWindow
     private GameObject rootNode;
     private bool isRootNodeChecked = false; // 用于控制是否已通过根节点检查
     //TODO:自定义命名空间名
-    public static string NameSpaceName { get; private set; } = "YuKi";
+    public static string NameSpaceName { get; private set; } = "Yuki";
     
     // 优先级队列，按顺序配置需要检测的类型
     private readonly List<Type> componentPriority = new List<Type>
