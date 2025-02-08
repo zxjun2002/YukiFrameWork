@@ -11,7 +11,7 @@ namespace Yuki
             IoCHelper.Instance.Inject(this);
         }
 
-        public void HandleResponse(GameBase_Rsp responseData,  JsonParser jsonParser)
+        public void HandleResponse(GameBase_Rsp responseData, JsonParser jsonParser)
         {
             GameLogger.LogWithColor($"[HttpAppService][Rsp]{responseData.api_id}: 登录数据：{responseData.data}", "#00F3FF");
             var ad_data = jsonParser.Parse<AccountPb.LoginRsp>(responseData.data.ToString());
