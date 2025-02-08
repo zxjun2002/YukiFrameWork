@@ -16,6 +16,7 @@
 11.基于UnityWebRequest的Http网络通信框架
 12.Proto序列化器
 13.基于Lean Localization的多语言解决方案（待合并）
+14.基于WebSocket的长链接通信模块
 
 #### 软件架构
 随心所欲,想到什么做什么
