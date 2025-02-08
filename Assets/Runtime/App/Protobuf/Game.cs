@@ -25,7 +25,7 @@ namespace AccountPb {
       byte[] descriptorData = global::System.Convert.FromBase64String(
           string.Concat(
             "CgpnYW1lLnByb3RvEglBY2NvdW50UGIiJQoITG9naW5SZXESCwoDcGlkGAEg",
-            "ASgJEgwKBG5hbWUYAiABKAkiTgoITG9naW5Sc3ASDAoEY29kZRgBIAEoBRIM",
+            "ASgDEgwKBG5hbWUYAiABKAkiTgoITG9naW5Sc3ASDAoEY29kZRgBIAEoBRIM",
             "CgRpbmZvGAIgASgJEhEKCXBsYXllcl9pZBgDIAEoBRITCgtwbGF5ZXJfbmFt",
             "ZRgEIAEoCWIGcHJvdG8z"));
       descriptor = pbr::FileDescriptor.FromGeneratedCode(descriptorData,
@@ -86,13 +86,13 @@ namespace AccountPb {
 
     /// <summary>Field number for the "pid" field.</summary>
     public const int PidFieldNumber = 1;
-    private string pid_ = "";
+    private long pid_;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public string Pid {
+    public long Pid {
       get { return pid_; }
       set {
-        pid_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+        pid_ = value;
       }
     }
 
@@ -132,7 +132,7 @@ namespace AccountPb {
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override int GetHashCode() {
       int hash = 1;
-      if (Pid.Length != 0) hash ^= Pid.GetHashCode();
+      if (Pid != 0L) hash ^= Pid.GetHashCode();
       if (Name.Length != 0) hash ^= Name.GetHashCode();
       if (_unknownFields != null) {
         hash ^= _unknownFields.GetHashCode();
@@ -152,9 +152,9 @@ namespace AccountPb {
     #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
       output.WriteRawMessage(this);
     #else
-      if (Pid.Length != 0) {
-        output.WriteRawTag(10);
-        output.WriteString(Pid);
+      if (Pid != 0L) {
+        output.WriteRawTag(8);
+        output.WriteInt64(Pid);
       }
       if (Name.Length != 0) {
         output.WriteRawTag(18);
@@ -170,9 +170,9 @@ namespace AccountPb {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     void pb::IBufferMessage.InternalWriteTo(ref pb::WriteContext output) {
-      if (Pid.Length != 0) {
-        output.WriteRawTag(10);
-        output.WriteString(Pid);
+      if (Pid != 0L) {
+        output.WriteRawTag(8);
+        output.WriteInt64(Pid);
       }
       if (Name.Length != 0) {
         output.WriteRawTag(18);
@@ -188,8 +188,8 @@ namespace AccountPb {
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public int CalculateSize() {
       int size = 0;
-      if (Pid.Length != 0) {
-        size += 1 + pb::CodedOutputStream.ComputeStringSize(Pid);
+      if (Pid != 0L) {
+        size += 1 + pb::CodedOutputStream.ComputeInt64Size(Pid);
       }
       if (Name.Length != 0) {
         size += 1 + pb::CodedOutputStream.ComputeStringSize(Name);
@@ -206,7 +206,7 @@ namespace AccountPb {
       if (other == null) {
         return;
       }
-      if (other.Pid.Length != 0) {
+      if (other.Pid != 0L) {
         Pid = other.Pid;
       }
       if (other.Name.Length != 0) {
@@ -227,8 +227,8 @@ namespace AccountPb {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
             break;
-          case 10: {
-            Pid = input.ReadString();
+          case 8: {
+            Pid = input.ReadInt64();
             break;
           }
           case 18: {
@@ -250,8 +250,8 @@ namespace AccountPb {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
             break;
-          case 10: {
-            Pid = input.ReadString();
+          case 8: {
+            Pid = input.ReadInt64();
             break;
           }
           case 18: {

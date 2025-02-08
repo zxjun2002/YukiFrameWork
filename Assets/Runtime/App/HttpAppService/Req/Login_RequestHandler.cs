@@ -13,13 +13,13 @@ namespace Yuki
         public  GameReqType ReqType { get; }
         public readonly AccountPb.LoginReq dataReq;
 
-        public Login_RequestHandler(string ConfigVersion, string deviceId)
+        public Login_RequestHandler(long pid, string name)
         {
             ReqType = GameReqType.LoginPlayer;
             dataReq = new AccountPb.LoginReq
             {
-                Pid = "2",
-                Name = "cxk",
+                Pid = pid,
+                Name = name,
             };
         }
 
