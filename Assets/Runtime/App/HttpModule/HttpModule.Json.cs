@@ -20,7 +20,7 @@ namespace Yuki
 
         public async UniTask<T> Request_Put<T>(int gameReqType, string json) where T : List<GameBase_Rsp>
         {
-            var game_url = $"{Url}/game";
+            var game_url = Url;
             if (isRequestInProgress)
             {
                 GameLogger.LogWarning("[Net][Rsp]: 上一个请求尚未完成，请稍后再试。");
@@ -58,7 +58,7 @@ namespace Yuki
 
         public async UniTask<T> Request_Put_Async<T>(int gameReqType, string json) where T : List<GameBase_Rsp>
         {
-            var game_url = $"{Url}/game";
+            var game_url = Url;
             Dictionary<string, string> Game_Headers = new Dictionary<string, string>();
             Game_Headers.Add("Game-Api-Id", gameReqType.ToString());
             using (var webRequest = new UnityWebRequest(game_url, HTTPVerbs.Put.ToString()))

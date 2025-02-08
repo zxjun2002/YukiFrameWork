@@ -9,6 +9,7 @@ namespace Yuki
     public partial class AUIPanel : BasePanel
     {
         [Autowired] RedPointRepository redPointRepository;
+        [Autowired] HttpAppService httpAppService;
         List<UIListItemData> TestUIList_ItemDatas = new List<UIListItemData>();//定义列表项数据List
         UIListItemData SetIndexData_Item(int idx)//定义函数,获取下标对应的数据
         {
@@ -20,7 +21,7 @@ namespace Yuki
             base.Init();
         }
 
-        public override void OnShow(BasePanelArg arg = null)
+        public override async void OnShow(BasePanelArg arg = null)
         {
             CheckBtn.onClick.AddListener(CheckBtnCallback);
             base.OnShow();
@@ -36,6 +37,7 @@ namespace Yuki
             }
             TestUIList.SetIndexData = SetIndexData_Item;
             TestUIList.SetCount(TestUIList_ItemDatas.Count);
+            await httpAppService.SendHttpReq(new Login_RequestHandler(114514, "Yuki"));
             redPointRepository.Agg.AddNode(RedPointKey.Play_LEVEL1_SHOP);
             redPointRepository.Agg.AddNode(RedPointKey.Play_LEVEL1_HOME);
             GameLogger.LogCyan(redPointRepository.Agg.GetRedpointNum(RedPointKey.Play_LEVEL1));

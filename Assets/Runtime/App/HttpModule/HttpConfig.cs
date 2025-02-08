@@ -1,17 +1,11 @@
 public enum ProfileState
 {
-    Develop,
-    Release,
-    PreRelease,
-    Hongkong,
     Test,
-    Bin,
-    NewLogin
 }
 
 public class GameConfig
 {
-    public static ProfileState ProfileState = ProfileState.PreRelease;
+    public static ProfileState ProfileState = ProfileState.Test;
 }
 
 
@@ -23,18 +17,8 @@ public class HttpConfig
         {
             switch (GameConfig.ProfileState)
             {
-                case ProfileState.Release:
-                    return "https://mc-rogue.xmfunny.com";
-                case ProfileState.PreRelease:
-                    return "https://mc-rogue-pre.xmfunny.com";
-                case ProfileState.Develop:
-                    return "https://mc-rogue-dev.sofunny.io";
                 case ProfileState.Test:
-                    return "http://mc-rogue-cjs.local.com";	
-                case ProfileState.Bin:
-                    return "http://10.30.40.65";
-                case ProfileState.NewLogin:
-                    return "http://mc-rogue-game.xmfunny.com:8080";
+                    return "http://localhost:8000";
             }
             return string.Empty;
         }
