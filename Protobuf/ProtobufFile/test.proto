@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+package TestPb;
+
+message TestReq {
+  int64 pid = 1;
+  string name = 2;
+}
+
+message TestRsp {
+  int32 code = 1;
+  string info = 2;
+  int32 player_id = 3;
+  string player_name = 4;
+}
