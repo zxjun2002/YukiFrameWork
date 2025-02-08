@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+package AccountPb;
+
+message LoginReq {
+  string pid = 1;
+  string name = 2;
+}
+
+message LoginRsp {
+  int32 code = 1;
+  string info = 2;
+  int32 player_id = 3;
+  string player_name = 4;
+}
