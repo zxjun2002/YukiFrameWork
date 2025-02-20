@@ -14,6 +14,7 @@ public class GameSettingMgr : InjectableMonoBehaviour
     [Autowired] private RedPointRepository redPointRepository;
     [Autowired] private IHttpModule httpModule;
     [Autowired] private HttpAppService httpAppService;
+    BehaviorTreeBuilder builder;
     /// <summary>
     /// 这是一个Unity特有的属性，用于指定Initialize方法作为运行时初始化方法，
     /// 在场景加载之前执行。这意味着，无论场景如何改变，Initialize方法都会在场景加载之前被调用一次。
@@ -22,6 +23,11 @@ public class GameSettingMgr : InjectableMonoBehaviour
     private static void Initialize()
     {
         IoCHelper.Initialize();
+    }
+    
+    private void Awake()
+    {
+        builder = new BehaviorTreeBuilder();
     }
     
     protected override async void OnStart()
@@ -41,6 +47,14 @@ public class GameSettingMgr : InjectableMonoBehaviour
         eventCenter.EventTrigger(new StringEventData(CustomEventType.TestEventWithParam,configTable.GetConfig<BuffCtRacastSet>().dic[102].sourceConf.buffName));
         eventCenter.EventTrigger(CustomEventType.TestEventWithoutParam);
         uiManager.OpenPanel<AUIPanel>();
+        builder.Repeat(3)
+            .Sequence()
+            .DebugNode("Ok,")//由于动作节点不进栈，所以不用Back
+            .DebugNode("It's ")
+            .DebugNode("My time")
+            .Back()
+            .End();
+        builder.TreeTick();
     }
     
     private void TestEventWithParam(BaseEventData eventData)

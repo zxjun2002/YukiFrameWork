@@ -37,7 +37,7 @@ namespace Yuki
             }
             TestUIList.SetIndexData = SetIndexData_Item;
             TestUIList.SetCount(TestUIList_ItemDatas.Count);
-            await httpAppService.SendHttpReq(new Login_RequestHandler(114514, "Yuki"));
+            // await httpAppService.SendHttpReq(new Login_RequestHandler(114514, "Yuki"));
             redPointRepository.Agg.AddNode(RedPointKey.Play_LEVEL1_SHOP);
             redPointRepository.Agg.AddNode(RedPointKey.Play_LEVEL1_HOME);
             GameLogger.LogCyan(redPointRepository.Agg.GetRedpointNum(RedPointKey.Play_LEVEL1));
