@@ -1,4 +1,5 @@
 using Cysharp.Threading.Tasks;
+using Cysharp.Threading.Tasks.Linq;
 using Domain;
 using MIKUFramework.IOC;
 using UnityEngine;
@@ -49,12 +50,16 @@ public class GameSettingMgr : InjectableMonoBehaviour
         uiManager.OpenPanel<AUIPanel>();
         builder.Repeat(3)
             .Sequence()
-            .DebugNode("Ok,")//由于动作节点不进栈，所以不用Back
-            .DebugNode("It's ")
-            .DebugNode("My time")
+                .DebugNode("Ok,")//由于动作节点不进栈，所以不用Back
+                .DebugNode("It's ")
+                .DebugNode("My time")
+                .TimerNode(1)
             .Back()
             .End();
-        builder.TreeTick();
+        await foreach (var _ in UniTaskAsyncEnumerable.EveryUpdate(PlayerLoopTiming.Update).WithCancellation(this.GetCancellationTokenOnDestroy()))
+        {
+            builder.TreeTick();
+        }
     }
     
     private void TestEventWithParam(BaseEventData eventData)
