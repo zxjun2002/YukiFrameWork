@@ -28,6 +28,7 @@ public class UGUIScriptGenerator : EditorWindow
         //TODO:新增自定义类型
         typeof(UIList),
         typeof(Button),
+        typeof(Toggle),
         typeof(Text),
         typeof(Slider),
         typeof(Image),
@@ -502,9 +503,14 @@ public class UGUIScriptGenerator : EditorWindow
         // 添加按钮监听逻辑
         foreach (var element in elements)
         {
-            if (element.selectedComponentType == "Button" || IsDerivedFromButton(element.selectedComponentType))
+            if (element.selectedComponentType == "Button" || IsDerivedFromType<Button>(element.selectedComponentType))
             {
                 sb.AppendLine($"            {element.fieldName}.onClick.AddListener({element.fieldName}Callback);");
+            }
+
+            if (element.selectedComponentType == "Toggle" || IsDerivedFromType<Toggle>(element.selectedComponentType))
+            {
+                sb.AppendLine($"            {element.fieldName}.onValueChanged.AddListener({element.fieldName}Callback);");
             }
         }
 
@@ -517,11 +523,17 @@ public class UGUIScriptGenerator : EditorWindow
         // 移除按钮监听逻辑
         foreach (var element in elements)
         {
-            if (element.selectedComponentType == "Button" || IsDerivedFromButton(element.selectedComponentType))
+            if (element.selectedComponentType == "Button" || IsDerivedFromType<Button>(element.selectedComponentType))
             {
                 sb.AppendLine($"            {element.fieldName}.onClick.RemoveListener({element.fieldName}Callback);");
             }
+            
+            if (element.selectedComponentType == "Toggle" || IsDerivedFromType<Toggle>(element.selectedComponentType))
+            {
+                sb.AppendLine($"            {element.fieldName}.onValueChanged.RemoveListener({element.fieldName}Callback);");
+            }
         }
+
 
         sb.AppendLine("            base.OnClose();");
         sb.AppendLine("        }");
@@ -532,9 +544,17 @@ public class UGUIScriptGenerator : EditorWindow
         sb.AppendLine("        #region 控件回调");
         foreach (var element in elements)
         {
-            if (element.selectedComponentType == "Button" || IsDerivedFromButton(element.selectedComponentType))
+            if (element.selectedComponentType == "Button" || IsDerivedFromType<Button>(element.selectedComponentType))
             {
                 sb.AppendLine($"        void {element.fieldName}Callback()");
+                sb.AppendLine("        {");
+                sb.AppendLine("            // TODO: Add your logic here");
+                sb.AppendLine("        }");
+            }
+            
+            if (element.selectedComponentType == "Toggle" || IsDerivedFromType<Toggle>(element.selectedComponentType))
+            {
+                sb.AppendLine($"        void {element.fieldName}Callback(bool isOn)");
                 sb.AppendLine("        {");
                 sb.AppendLine("            // TODO: Add your logic here");
                 sb.AppendLine("        }");
@@ -548,22 +568,19 @@ public class UGUIScriptGenerator : EditorWindow
 
         return sb.ToString();
     }
-    // 判断是否继承自Button
-    private bool IsDerivedFromButton(string componentType)
+    // 判断是否继承自某个类型
+    private bool IsDerivedFromType<T>(string componentType)
     {
-        // 遍历所有已加载的程序集，查找匹配的类型
         var assemblies = AppDomain.CurrentDomain.GetAssemblies();
         foreach (var assembly in assemblies)
         {
-            // 在当前程序集内查找类型
             var type = assembly.GetType(componentType);
-            if (type != null && typeof(Button).IsAssignableFrom(type))
+            if (type != null && typeof(T).IsAssignableFrom(type))
             {
-                return true; // 如果类型存在且继承自 Button，则返回 true
+                return true;
             }
         }
-
-        return false; // 未找到匹配的类型
+        return false;
     }
 
     // 查找给定 UI 元素的根节点
