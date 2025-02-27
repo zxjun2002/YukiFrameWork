@@ -499,6 +499,7 @@ public class UGUIScriptGenerator : EditorWindow
         sb.AppendLine();
         sb.AppendLine("        public override void OnShow(BasePanelArg arg = null)");
         sb.AppendLine("        {");
+        sb.AppendLine("            base.OnShow();");
 
         // 添加按钮监听逻辑
         foreach (var element in elements)
@@ -513,12 +514,12 @@ public class UGUIScriptGenerator : EditorWindow
                 sb.AppendLine($"            {element.fieldName}.onValueChanged.AddListener({element.fieldName}Callback);");
             }
         }
-
-        sb.AppendLine("            base.OnShow();");
+        
         sb.AppendLine("        }");
         sb.AppendLine();
         sb.AppendLine("        public override void OnClose()");
         sb.AppendLine("        {");
+        sb.AppendLine("            base.OnClose();");
 
         // 移除按钮监听逻辑
         foreach (var element in elements)
@@ -533,9 +534,7 @@ public class UGUIScriptGenerator : EditorWindow
                 sb.AppendLine($"            {element.fieldName}.onValueChanged.RemoveListener({element.fieldName}Callback);");
             }
         }
-
-
-        sb.AppendLine("            base.OnClose();");
+        
         sb.AppendLine("        }");
         sb.AppendLine("        #endregion");
         sb.AppendLine();
