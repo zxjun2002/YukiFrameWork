@@ -92,30 +92,19 @@ namespace ReadConf
                 fieldStr += $"    public {className}[] {classFieldName};\n";
                 defStr += classDef;
 
-                // 生成 XXXRacastSet 和 XXXRacast 类文件
+                // 生成 XXXRacastSet 结构体文件
                 string racastSetClass = "using System.Collections.Generic;\nusing System.Linq;\n"
-                                         + $"public struct {className}RacastSet : IRacastSet\n" +
-                                         "{\n" +
-                                         $"    public Dictionary<int, {className}Racast> dic;\n" +
-                                         $"    public {className}RacastSet(ConfData data)\n" +
-                                         "    {\n" +
-                                         $"        dic = (from es in data.{classFieldName}\n" +
-                                         $"               let esr = new {className}Racast(es)\n" +
-                                         "               select esr).ToDictionary(esr => esr.sourceConf.id);\n" +
-                                         "    }\n" +
-                                         "}\n";
-
-                string racastClass = $"public class {className}Racast\n" +
-                                     "{\n" +
-                                     $"    public {className} sourceConf;\n\n" +
-                                     $"    public {className}Racast({className} sourceConf)\n" +
-                                     "    {\n" +
-                                     "        this.sourceConf = sourceConf;\n" +
-                                     "    }\n" +
-                                     "}\n\n";
+                                        + $"public struct {className}RacastSet : IRacastSet\n"
+                                        + "{\n"
+                                        + $"    public Dictionary<int, {className}> dic;\n\n"
+                                        + $"    public {className}RacastSet(ConfData data)\n"
+                                        + "    {\n"
+                                        + $"        dic = data.{classFieldName}.ToDictionary(es => es.id);\n"
+                                        + "    }\n"
+                                        + "}\n\n";
 
                 string racastSetFilePath = Path.Combine(Application.dataPath + ResEditorConfig.Racast_Path, $"{className}RacastSet.cs");
-                File.WriteAllText(racastSetFilePath, racastSetClass + racastClass);
+                File.WriteAllText(racastSetFilePath, racastSetClass);
 
                 result.classes.Add(new ClassContent
                 {
@@ -191,30 +180,19 @@ namespace ReadConf
                         fieldStr += $"    public {className}[] {classFieldName};\n";
                         defStr += classDef;
 
-                        // 生成 XXXRacastSet 和 XXXRacast 类文件
+                        // 生成 XXXRacastSet 结构体文件
                         string racastSetClass = "using System.Collections.Generic;\nusing System.Linq;\n"
-                                                 + $"public struct {className}RacastSet : IRacastSet\n" +
-                                                 "{\n" +
-                                                 $"    public Dictionary<int, {className}Racast> dic;\n" +
-                                                 $"    public {className}RacastSet(ConfData data)\n" +
-                                                 "    {\n" +
-                                                 $"        dic = (from es in data.{classFieldName}\n" +
-                                                 $"               let esr = new {className}Racast(es)\n" +
-                                                 "               select esr).ToDictionary(esr => esr.sourceConf.id);\n" +
-                                                 "    }\n" +
-                                                 "}\n";
-
-                        string racastClass = $"public class {className}Racast\n" +
-                                             "{\n" +
-                                             $"    public {className} sourceConf;\n\n" +
-                                             $"    public {className}Racast({className} sourceConf)\n" +
-                                             "    {\n" +
-                                             "        this.sourceConf = sourceConf;\n" +
-                                             "    }\n" +
-                                             "}\n\n";
+                                                + $"public struct {className}RacastSet : IRacastSet\n"
+                                                + "{\n"
+                                                + $"    public Dictionary<int, {className}> dic;\n\n"
+                                                + $"    public {className}RacastSet(ConfData data)\n"
+                                                + "    {\n"
+                                                + $"        dic = data.{classFieldName}.ToDictionary(es => es.id);\n"
+                                                + "    }\n"
+                                                + "}\n\n";
 
                         string racastSetFilePath = Path.Combine(Application.dataPath + ResEditorConfig.Racast_Path, $"{className}RacastSet.cs");
-                        File.WriteAllText(racastSetFilePath, racastSetClass + racastClass);
+                        File.WriteAllText(racastSetFilePath, racastSetClass);
 
                         result.classes.Add(new ClassContent
                         {
