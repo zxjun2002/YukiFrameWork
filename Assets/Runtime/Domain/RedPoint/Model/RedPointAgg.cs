@@ -23,6 +23,8 @@ namespace Domain
     public class RedPointAgg
     {
         private RedPointNode root;
+        // 用于挂起订阅：节点 key -> 回调列表
+        private Dictionary<string, List<RedPointNode.RedPointChangeDelegate>> pendingSubscriptions = new Dictionary<string, List<RedPointNode.RedPointChangeDelegate>>();
         
         public RedPointAgg()
         {
@@ -40,8 +42,12 @@ namespace Domain
             RedPointNode curNode = root;
             curNode.redNum += 1;
             curNode.OnRedPointChange?.Invoke(curNode.redNum);
+            // 用于累计完整路径（例如 "Play|Level1|SHOP"）
+            string currentAccumulatedKey = "";
             foreach (string k in keys)
             {
+                currentAccumulatedKey = string.IsNullOrEmpty(currentAccumulatedKey) ? k : currentAccumulatedKey + "|" + k;
+                
                 if (!curNode.children.ContainsKey(k))
                 {
                     curNode.children.Add(k, new RedPointNode(k));
@@ -49,6 +55,16 @@ namespace Domain
                 curNode = curNode.children[k];
                 curNode.redNum += 1;
                 curNode.OnRedPointChange?.Invoke(curNode.redNum);
+                
+                // 如果之前有挂起的订阅，则立即注册
+                if (pendingSubscriptions.ContainsKey(currentAccumulatedKey))
+                {
+                    foreach (var callback in pendingSubscriptions[currentAccumulatedKey])
+                    {
+                        curNode.OnRedPointChange += callback;
+                    }
+                    pendingSubscriptions.Remove(currentAccumulatedKey);
+                }
             }
             return curNode;
         }
@@ -155,6 +171,12 @@ namespace Domain
             RedPointNode node = FindNode(key);
             if (node == null)
             {
+                // 节点尚未创建，将回调挂起
+                if (!pendingSubscriptions.ContainsKey(key))
+                {
+                    pendingSubscriptions[key] = new List<RedPointNode.RedPointChangeDelegate>();
+                }
+                pendingSubscriptions[key].Add(cb);
                 return;
             }
             node.OnRedPointChange += cb;

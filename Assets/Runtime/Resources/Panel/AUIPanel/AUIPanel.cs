@@ -40,9 +40,12 @@ namespace Yuki
             TestUIList.SetIndexData = SetIndexData_Item;
             TestUIList.SetCount(TestUIList_ItemDatas.Count);
             // await httpAppService.SendHttpReq(new Login_RequestHandler(114514, "Yuki"));
+            redPointRepository.Agg.SetCallBack(RedPointKey.Play_LEVEL1, (node) =>
+            {
+                GameLogger.LogGreen(node);
+            });
             redPointRepository.Agg.AddNode(RedPointKey.Play_LEVEL1_SHOP);
             redPointRepository.Agg.AddNode(RedPointKey.Play_LEVEL1_HOME);
-            GameLogger.LogCyan(redPointRepository.Agg.GetRedpointNum(RedPointKey.Play_LEVEL1));
             guideRepository.AddGuide(BeginnerGuideDataList);
             guideRepository.PlayGuide();
         }
