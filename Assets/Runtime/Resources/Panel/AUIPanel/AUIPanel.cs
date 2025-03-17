@@ -10,6 +10,8 @@ namespace Yuki
     {
         [Autowired] RedPointRepository redPointRepository;
         [Autowired] HttpAppService httpAppService;
+        [Autowired] GuideRepository guideRepository;
+        [SerializeField] private UIBeginnerGuideDataList BeginnerGuideDataList;
         List<UIListItemData> TestUIList_ItemDatas = new List<UIListItemData>();//定义列表项数据List
         UIListItemData SetIndexData_Item(int idx)//定义函数,获取下标对应的数据
         {
@@ -21,7 +23,7 @@ namespace Yuki
             base.Init();
         }
 
-        public override async void OnShow(BasePanelArg arg = null)
+        public override void OnShow(BasePanelArg arg = null)
         {
             CheckBtn.onClick.AddListener(CheckBtnCallback);
             base.OnShow();
@@ -41,6 +43,8 @@ namespace Yuki
             redPointRepository.Agg.AddNode(RedPointKey.Play_LEVEL1_SHOP);
             redPointRepository.Agg.AddNode(RedPointKey.Play_LEVEL1_HOME);
             GameLogger.LogCyan(redPointRepository.Agg.GetRedpointNum(RedPointKey.Play_LEVEL1));
+            guideRepository.AddGuide(BeginnerGuideDataList);
+            guideRepository.PlayGuide();
         }
 
         public override void OnClose()
