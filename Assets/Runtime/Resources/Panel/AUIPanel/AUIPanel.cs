@@ -1,4 +1,6 @@
+using System;
 using System.Collections.Generic;
+using Cysharp.Threading.Tasks;
 using Domain;
 using MIKUFramework.IOC;
 using UnityEngine;
@@ -33,7 +35,15 @@ namespace Yuki
             {
                 var itemData = new Test_UIListItemData
                 {
-                    num = i
+                    Index = i,
+                    num = i,
+                    GuideAction = async go =>
+                    {
+                        BeginnerGuideDataList.SetGuideTarget(go);
+                        await UniTask.DelayFrame(1);
+                        guideRepository.AddGuide(BeginnerGuideDataList);
+                        guideRepository.PlayGuide();
+                    }
                 };
                 TestUIList_ItemDatas.Add(itemData);
             }
@@ -46,8 +56,6 @@ namespace Yuki
             });
             redPointRepository.Agg.AddNode(RedPointKey.Play_LEVEL1_SHOP);
             redPointRepository.Agg.AddNode(RedPointKey.Play_LEVEL1_HOME);
-            guideRepository.AddGuide(BeginnerGuideDataList);
-            guideRepository.PlayGuide();
         }
 
         public override void OnClose()

@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using System;
+using System.Linq;
 
 /// <summary>
 /// GuideWidgetData的基类
@@ -145,5 +146,16 @@ public class UIBeginnerGuideDataList : MonoBehaviour
     {
         //UIBeginnerGuideManager.Instance.AddGuide(this);
         //UIBeginnerGuideManager.Instance.ShowGuideList();
+    }
+    
+    public void SetGuideTarget(GameObject target)
+    {
+        var uiBeginnerGuideData = guideDataList.First();
+        if (uiBeginnerGuideData != null)
+        {
+            uiBeginnerGuideData.strokeTarget = target;
+            uiBeginnerGuideData.highLightTarget = target;
+            uiBeginnerGuideData.selectedObject = target;
+        }
     }
 }
