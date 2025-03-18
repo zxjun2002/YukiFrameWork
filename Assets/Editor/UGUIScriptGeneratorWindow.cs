@@ -60,7 +60,7 @@ public class UGUIScriptGenerator : EditorWindow
         GetWindow<UGUIScriptGenerator>("UGUI Script Generator");
     }
     
-    [MenuItem("GameObject/Tool/Generate UI Script for UIPanel", false, 10)]
+    [MenuItem("GameObject/工具/Generate UI Script for UIPanel", false, 10)]
     private static void GenerateUIScriptForSelectedPanel()
     {
         GameObject selectedObj = Selection.activeGameObject;
