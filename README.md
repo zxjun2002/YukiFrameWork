@@ -18,7 +18,7 @@
 13.基于Lean Localization的多语言解决方案（待合并）
 14.基于UnityWebSocket的长链接通信模块（https://github.com/psygames/UnityWebSocket?tab=readme-ov-file）（待开发）
 15.行为树AI自编写架构
-16.（进行中）尝试雷火UX工具（包括多语言，层级管理器，新手引导模块）
+16.雷火UX工具（包括多语言，层级管理器，新手引导模块） 目前主要使用其新手引导模块，多语言模块和层级管理器待定
 
 #### 软件架构
 随心所欲,想到什么做什么
