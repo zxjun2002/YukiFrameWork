@@ -54,8 +54,6 @@ namespace Domain
                 }
                 curNode = curNode.children[k];
                 curNode.redNum += 1;
-                curNode.OnRedPointChange?.Invoke(curNode.redNum);
-                
                 // 如果之前有挂起的订阅，则立即注册
                 if (pendingSubscriptions.ContainsKey(currentAccumulatedKey))
                 {
@@ -65,6 +63,7 @@ namespace Domain
                     }
                     pendingSubscriptions.Remove(currentAccumulatedKey);
                 }
+                curNode.OnRedPointChange?.Invoke(curNode.redNum);
             }
             return curNode;
         }
