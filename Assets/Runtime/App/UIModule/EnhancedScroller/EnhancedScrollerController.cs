@@ -1,8 +1,8 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
-using EnhancedUI;
 using EnhancedUI.EnhancedScroller;
+using UnityEngine.UI;
 
 /// <summary>
 /// EnhancedScroller 的通用封装，适用于任何类型的 BaseCellData。
@@ -11,6 +11,9 @@ using EnhancedUI.EnhancedScroller;
 public class EnhancedScrollerController : MonoBehaviour, IEnhancedScrollerDelegate
 {
     private EnhancedScroller scroller;
+    
+    // 用于控制列表方向
+    private EnhancedScroller.ScrollDirectionEnum orientation;
 
     // 维护数据
     private List<BaseCellData> dataList = new List<BaseCellData>();
@@ -21,6 +24,42 @@ public class EnhancedScrollerController : MonoBehaviour, IEnhancedScrollerDelega
     public void Awake()
     {
         scroller = gameObject.GetComponent<EnhancedScroller>();
+        orientation = scroller.scrollDirection;
+    }
+    
+    /// <summary>
+    /// 设置或获取列表项之间的全局间隔
+    /// </summary>
+    public float Spacing
+    {
+        get
+        {
+            if (orientation == EnhancedScroller.ScrollDirectionEnum.Horizontal)
+            {
+                var layout = scroller.GetComponentInChildren<HorizontalLayoutGroup>();
+                return layout != null ? layout.spacing : 0f;
+            }
+            else
+            {
+                var layout = scroller.GetComponentInChildren<VerticalLayoutGroup>();
+                return layout != null ? layout.spacing : 0f;
+            }
+        }
+        set
+        {
+            if (orientation == EnhancedScroller.ScrollDirectionEnum.Horizontal)
+            {
+                var layout = scroller.GetComponentInChildren<HorizontalLayoutGroup>();
+                if (layout != null)
+                    layout.spacing = value;
+            }
+            else
+            {
+                var layout = scroller.GetComponentInChildren<VerticalLayoutGroup>();
+                if (layout != null)
+                    layout.spacing = value;
+            }
+        }
     }
 
     /// <summary>
@@ -56,13 +95,14 @@ public class EnhancedScrollerController : MonoBehaviour, IEnhancedScrollerDelega
         var data = dataList[dataIndex];
 
         // 1. 先尝试数据类的 CalculateHeight()
-        float height = data.CalculateHeight();
-        if (height > 0) return height;
+        float size = data.CalculateSize();
+        if (size > 0) return size;
 
         // 2. 如果未指定，则从注册的 prefab 获取默认高度
         if (prefabMapping.TryGetValue(data.GetType(), out EnhancedScrollerCellView prefab) && prefab != null)
         {
-            return prefab.GetComponent<RectTransform>().rect.height;
+            Rect rect = prefab.GetComponent<RectTransform>().rect;
+            return orientation == EnhancedScroller.ScrollDirectionEnum.Horizontal ? rect.width : rect.height;
         }
 
         // 3. 兜底默认 100f 避免异常
@@ -85,5 +125,13 @@ public class EnhancedScrollerController : MonoBehaviour, IEnhancedScrollerDelega
         EnhancedScrollerCellView cellView = scroller.GetCellView(prefab);
         cellView.SetData(data);
         return cellView;
+    }
+    
+    /// <summary>
+    /// 更新数据,保持当前滑动进度
+    /// </summary>
+    public void RefreshDataPreservePosition()
+    {
+        scroller.ReloadData(scroller.NormalizedScrollPosition);
     }
 }

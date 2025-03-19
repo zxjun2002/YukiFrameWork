@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using Cysharp.Threading.Tasks;
 using Domain;
 using EnhancedUI.EnhancedScroller;
 using MIKUFramework.IOC;
@@ -26,7 +27,7 @@ namespace Yuki
             base.Init();
         }
 
-        public override void OnShow(BasePanelArg arg = null)
+        public override async void OnShow(BasePanelArg arg = null)
         {
             CheckBtn.onClick.AddListener(CheckBtnCallback);
             base.OnShow();
@@ -118,7 +119,7 @@ namespace Yuki
                     dataIndexList = Enumerable.Range(0, 10).ToList()
                 },
             };
-
+            scrollerController.Spacing = 50.0f;
             // 传入数据
             scrollerController.SetData(data);
         }

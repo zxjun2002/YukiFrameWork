@@ -13,9 +13,9 @@ namespace EnhancedUI.EnhancedScroller
         /// 计算单元格高度，子类可覆盖
         /// 返回 `-1` 代表使用默认高度（由预制体决定）
         /// </summary>
-        public virtual float CalculateHeight()
+        public virtual float CalculateSize()
         {
-            return -1f; // -1 代表让 EnhancedScrollerController 读取预制体高度
+            return -1f; // -1 代表让 EnhancedScrollerController 读取预制体尺寸
         }
     }
     

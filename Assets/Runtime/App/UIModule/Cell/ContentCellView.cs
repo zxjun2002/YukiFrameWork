@@ -11,7 +11,7 @@ public class ContentBaseCellData : BaseCellData
     public List<int> dataIndexList;
     public ObjectPool<GameObject> pool;
     
-    public override float CalculateHeight()
+    public override float CalculateSize()
     {
         int line = (int) Math.Ceiling(dataIndexList.Count / 4.0f);
         return line * 100f + (line - 1) * 5;
@@ -26,6 +26,10 @@ public class ContentCellView : EnhancedScrollerCellView
     {
         if (data is ContentBaseCellData headerData)
         {
+            for (int i = parentTransform.childCount - 1; i >= 0; i--)
+            {
+                headerData.pool.Release(transform.GetChild(i).gameObject);
+            }
             foreach (var Index in headerData.dataIndexList)
             {
                 var obj = headerData.pool.Get();
