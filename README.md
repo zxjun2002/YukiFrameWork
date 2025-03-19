@@ -19,6 +19,7 @@
 14.基于UnityWebSocket的长链接通信模块（https://github.com/psygames/UnityWebSocket?tab=readme-ov-file）（待开发）
 15.行为树AI自编写架构
 16.雷火UX工具（包括多语言，层级管理器，新手引导模块） 目前主要使用其新手引导模块，多语言模块和层级管理器待定
+17.基于EnhancedScroller的混合列表解决方案
 
 #### 软件架构
 随心所欲,想到什么做什么
