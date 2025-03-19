@@ -48,33 +48,33 @@ namespace Yuki
                 {
                     Destroy(obj);
                 },true,30);
-            // //最后写入数据并且赋值
-            // TestUIList_ItemDatas.Clear();
-            // for (int i = 0; i < 100; i++)
-            // {
-            //     var itemData = new Test_UIListItemData
-            //     {
-            //         Index = i,
-            //         num = i,
-            //         GuideAction = async go =>
-            //         {
-            //             BeginnerGuideDataList.SetGuideTarget(go);
-            //             await UniTask.DelayFrame(1);
-            //             guideRepository.AddGuide(BeginnerGuideDataList);
-            //             guideRepository.PlayGuide();
-            //         }
-            //     };
-            //     TestUIList_ItemDatas.Add(itemData);
-            // }
-            // TestUIList.SetIndexData = SetIndexData_Item;
-            // TestUIList.SetCount(TestUIList_ItemDatas.Count);
-            // // await httpAppService.SendHttpReq(new Login_RequestHandler(114514, "Yuki"));
-            // redPointRepository.Agg.SetCallBack(RedPointKey.Play_LEVEL1, (node) =>
-            // {
-            //     GameLogger.LogGreen(node);
-            // });
-            // redPointRepository.Agg.AddNode(RedPointKey.Play_LEVEL1_SHOP);
-            // redPointRepository.Agg.AddNode(RedPointKey.Play_LEVEL1_HOME);
+            //最后写入数据并且赋值
+            TestUIList_ItemDatas.Clear();
+            for (int i = 0; i < 100; i++)
+            {
+                var itemData = new Test_UIListItemData
+                {
+                    Index = i,
+                    num = i,
+                    GuideAction = async go =>
+                    {
+                        BeginnerGuideDataList.SetGuideTarget(go);
+                        await UniTask.DelayFrame(1);
+                        guideRepository.AddGuide(BeginnerGuideDataList);
+                        guideRepository.PlayGuide();
+                    }
+                };
+                TestUIList_ItemDatas.Add(itemData);
+            }
+            TestUIList.SetIndexData = SetIndexData_Item;
+            TestUIList.SetCount(TestUIList_ItemDatas.Count);
+            // await httpAppService.SendHttpReq(new Login_RequestHandler(114514, "Yuki"));
+            redPointRepository.Agg.SetCallBack(RedPointKey.Play_LEVEL1, (node) =>
+            {
+                GameLogger.LogGreen(node);
+            });
+            redPointRepository.Agg.AddNode(RedPointKey.Play_LEVEL1_SHOP);
+            redPointRepository.Agg.AddNode(RedPointKey.Play_LEVEL1_HOME);
             // 注册不同数据类型的预制体
             scrollerController.RegisterPrefab<HeaderBaseCellData>(headerPrefab);
             scrollerController.RegisterPrefab<ContentBaseCellData>(itemPrefab);
