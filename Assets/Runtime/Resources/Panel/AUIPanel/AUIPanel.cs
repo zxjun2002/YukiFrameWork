@@ -1,10 +1,10 @@
-using System;
 using System.Collections.Generic;
-using Cysharp.Threading.Tasks;
+using System.Linq;
 using Domain;
+using EnhancedUI.EnhancedScroller;
 using MIKUFramework.IOC;
 using UnityEngine;
-using UnityEngine.UI;
+using UnityEngine.Pool;
 
 namespace Yuki
 {
@@ -15,6 +15,7 @@ namespace Yuki
         [Autowired] GuideRepository guideRepository;
         [SerializeField] private UIBeginnerGuideDataList BeginnerGuideDataList;
         List<UIListItemData> TestUIList_ItemDatas = new List<UIListItemData>();//定义列表项数据List
+        private ObjectPool<GameObject> pool;
         UIListItemData SetIndexData_Item(int idx)//定义函数,获取下标对应的数据
         {
             return TestUIList_ItemDatas[idx];
@@ -29,33 +30,79 @@ namespace Yuki
         {
             CheckBtn.onClick.AddListener(CheckBtnCallback);
             base.OnShow();
-            //最后写入数据并且赋值
-            TestUIList_ItemDatas.Clear();
-            for (int i = 0; i < 100; i++)
-            {
-                var itemData = new Test_UIListItemData
+            pool = new ObjectPool<GameObject>(() =>
                 {
-                    Index = i,
-                    num = i,
-                    GuideAction = async go =>
-                    {
-                        BeginnerGuideDataList.SetGuideTarget(go);
-                        await UniTask.DelayFrame(1);
-                        guideRepository.AddGuide(BeginnerGuideDataList);
-                        guideRepository.PlayGuide();
-                    }
-                };
-                TestUIList_ItemDatas.Add(itemData);
-            }
-            TestUIList.SetIndexData = SetIndexData_Item;
-            TestUIList.SetCount(TestUIList_ItemDatas.Count);
-            // await httpAppService.SendHttpReq(new Login_RequestHandler(114514, "Yuki"));
-            redPointRepository.Agg.SetCallBack(RedPointKey.Play_LEVEL1, (node) =>
+                    GameObject newInstance = Instantiate(Resources.Load("Cell/TestItem")) as GameObject;
+                    return newInstance;
+                },
+                (obj) =>
+                {
+                    obj.SetActive(true);
+                },
+                (obj) =>
+                {
+                    obj.SetActive(false);
+                },
+                (obj) =>
+                {
+                    Destroy(obj);
+                },true,30);
+            // //最后写入数据并且赋值
+            // TestUIList_ItemDatas.Clear();
+            // for (int i = 0; i < 100; i++)
+            // {
+            //     var itemData = new Test_UIListItemData
+            //     {
+            //         Index = i,
+            //         num = i,
+            //         GuideAction = async go =>
+            //         {
+            //             BeginnerGuideDataList.SetGuideTarget(go);
+            //             await UniTask.DelayFrame(1);
+            //             guideRepository.AddGuide(BeginnerGuideDataList);
+            //             guideRepository.PlayGuide();
+            //         }
+            //     };
+            //     TestUIList_ItemDatas.Add(itemData);
+            // }
+            // TestUIList.SetIndexData = SetIndexData_Item;
+            // TestUIList.SetCount(TestUIList_ItemDatas.Count);
+            // // await httpAppService.SendHttpReq(new Login_RequestHandler(114514, "Yuki"));
+            // redPointRepository.Agg.SetCallBack(RedPointKey.Play_LEVEL1, (node) =>
+            // {
+            //     GameLogger.LogGreen(node);
+            // });
+            // redPointRepository.Agg.AddNode(RedPointKey.Play_LEVEL1_SHOP);
+            // redPointRepository.Agg.AddNode(RedPointKey.Play_LEVEL1_HOME);
+            // 注册不同数据类型的预制体
+            scrollerController.RegisterPrefab<HeaderBaseCellData>(headerPrefab);
+            scrollerController.RegisterPrefab<ContentBaseCellData>(itemPrefab);
+
+            // 构造数据
+            List<BaseCellData> data = new List<BaseCellData>
             {
-                GameLogger.LogGreen(node);
-            });
-            redPointRepository.Agg.AddNode(RedPointKey.Play_LEVEL1_SHOP);
-            redPointRepository.Agg.AddNode(RedPointKey.Play_LEVEL1_HOME);
+                new HeaderBaseCellData()
+                {
+                    title = "列表1"
+                },
+                new ContentBaseCellData()
+                {
+                    pool = pool,
+                    dataIndexList = Enumerable.Range(0, 501).ToList()
+                },
+                new HeaderBaseCellData()
+                {
+                    title = "列表2"
+                },
+                new ContentBaseCellData()
+                {
+                    pool = pool,
+                    dataIndexList = Enumerable.Range(0, 100).ToList()
+                },
+            };
+
+            // 传入数据
+            scrollerController.SetData(data);
         }
 
         public override void OnClose()
