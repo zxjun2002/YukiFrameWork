@@ -88,7 +88,7 @@ namespace Yuki
                 new ContentBaseCellData()
                 {
                     pool = pool,
-                    dataIndexList = Enumerable.Range(0, 501).ToList()
+                    dataIndexList = Enumerable.Range(0, 10).ToList()
                 },
                 new HeaderBaseCellData()
                 {
@@ -97,7 +97,25 @@ namespace Yuki
                 new ContentBaseCellData()
                 {
                     pool = pool,
-                    dataIndexList = Enumerable.Range(0, 100).ToList()
+                    dataIndexList = Enumerable.Range(0, 20).ToList()
+                },
+                new HeaderBaseCellData()
+                {
+                    title = "列表3"
+                },
+                new ContentBaseCellData()
+                {
+                    pool = pool,
+                    dataIndexList = Enumerable.Range(0, 50).ToList()
+                },
+                new HeaderBaseCellData()
+                {
+                    title = "列表4"
+                },
+                new ContentBaseCellData()
+                {
+                    pool = pool,
+                    dataIndexList = Enumerable.Range(0, 10).ToList()
                 },
             };
 

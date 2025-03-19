@@ -13,7 +13,8 @@ public class ContentBaseCellData : BaseCellData
     
     public override float CalculateHeight()
     {
-        return (float) Math.Ceiling(dataIndexList.Count / 3.0f) * 100f;
+        int line = (int) Math.Ceiling(dataIndexList.Count / 4.0f);
+        return line * 100f + (line - 1) * 5;
     }
 }
 
