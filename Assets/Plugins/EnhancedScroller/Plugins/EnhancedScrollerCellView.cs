@@ -57,5 +57,7 @@ namespace EnhancedUI.EnhancedScroller
         public virtual void RefreshCellView() { }
         
         public virtual void SetData(BaseCellData data) { }
+        
+        public virtual void HideData() { }
     }
 }

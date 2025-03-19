@@ -21,10 +21,26 @@ public class EnhancedScrollerController : MonoBehaviour, IEnhancedScrollerDelega
     // 维护 数据类型 -> 预制体 映射关系（外部注入）
     private Dictionary<Type, EnhancedScrollerCellView> prefabMapping = new Dictionary<Type, EnhancedScrollerCellView>();
     
-    public void Awake()
+    private void Awake()
     {
         scroller = gameObject.GetComponent<EnhancedScroller>();
         orientation = scroller.scrollDirection;
+        // 订阅回收事件
+        scroller.cellViewWillRecycle += OnCellViewWillRecycle;
+    }
+    
+    private void OnDestroy()
+    {
+        if (scroller != null)
+        {
+            scroller.cellViewWillRecycle -= OnCellViewWillRecycle;
+        }
+    }
+
+    private void OnCellViewWillRecycle(EnhancedScrollerCellView cellView)
+    {
+        // 当 cellView 被回收前调用 HideData
+        cellView.HideData();
     }
     
     /// <summary>

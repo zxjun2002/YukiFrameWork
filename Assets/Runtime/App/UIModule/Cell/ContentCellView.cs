@@ -28,7 +28,7 @@ public class ContentCellView : EnhancedScrollerCellView
         {
             for (int i = parentTransform.childCount - 1; i >= 0; i--)
             {
-                headerData.pool.Release(transform.GetChild(i).gameObject);
+                headerData.pool.Release(parentTransform.GetChild(i).gameObject);
             }
             foreach (var Index in headerData.dataIndexList)
             {
@@ -38,5 +38,10 @@ public class ContentCellView : EnhancedScrollerCellView
                 obj.transform.Find("Info").GetComponent<TextMeshProUGUI>().text = Index.ToString();
             }
         }
+    }
+
+    public override void HideData()
+    {
+        GameLogger.LogCyan("回收");
     }
 }
