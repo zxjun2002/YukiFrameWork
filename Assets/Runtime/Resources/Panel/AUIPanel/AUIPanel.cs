@@ -118,8 +118,16 @@ namespace Yuki
                     pool = pool,
                     dataIndexList = Enumerable.Range(0, 10).ToList()
                 },
+                new HeaderBaseCellData()
+                {
+                    title = "列表5"
+                },
+                new ContentBaseCellData()
+                {
+                    pool = pool,
+                    dataIndexList = Enumerable.Range(0, 40).ToList()
+                },
             };
-            scrollerController.Spacing = 50.0f;
             // 传入数据
             scrollerController.SetData(data);
         }

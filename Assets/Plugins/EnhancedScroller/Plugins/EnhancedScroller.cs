@@ -2,6 +2,7 @@
 using UnityEngine.UI;
 using System.Collections;
 using System;
+using UnityEngine.Serialization;
 
 namespace EnhancedUI.EnhancedScroller
 {
@@ -112,6 +113,11 @@ namespace EnhancedUI.EnhancedScroller
         /// The number of pixels between cell views, starting after the first cell view
         /// </summary>
         public float spacing;
+        
+        /// <summary>
+        /// 布局对齐方式
+        /// </summary>
+        public TextAnchor childAlignment;
 
         /// <summary>
         /// The padding inside of the scroller: top, bottom, left, right.
@@ -314,10 +320,7 @@ namespace EnhancedUI.EnhancedScroller
         /// </summary>
         public bool Loop
         {
-            get
-            {
-                return loop;
-            }
+            get => loop;
             set
             {
                 // only if the value has changed
@@ -521,6 +524,26 @@ namespace EnhancedUI.EnhancedScroller
                     return _scrollRectTransform.rect.height;
                 else
                     return _scrollRectTransform.rect.width;
+            }
+        }
+        
+        /// <summary>
+        /// 根据 childAlignment 返回合适的 pivot 值
+        /// </summary>
+        private Vector2 GetPivotFromTextAnchor(TextAnchor alignment)
+        {
+            switch (alignment)
+            {
+                case TextAnchor.UpperLeft:    return new Vector2(0, 1);
+                case TextAnchor.UpperCenter:  return new Vector2(0.5f, 1);
+                case TextAnchor.UpperRight:   return new Vector2(1, 1);
+                case TextAnchor.MiddleLeft:   return new Vector2(0, 0.5f);
+                case TextAnchor.MiddleCenter: return new Vector2(0.5f, 0.5f);
+                case TextAnchor.MiddleRight:  return new Vector2(1, 0.5f);
+                case TextAnchor.LowerLeft:    return new Vector2(0, 0);
+                case TextAnchor.LowerCenter:  return new Vector2(0.5f, 0);
+                case TextAnchor.LowerRight:   return new Vector2(1, 0);
+                default:                      return new Vector2(0.5f, 1);
             }
         }
 
@@ -1580,15 +1603,18 @@ namespace EnhancedUI.EnhancedScroller
             // set the containers anchor and pivot
             if (scrollDirection == ScrollDirectionEnum.Vertical)
             {
+                // 保持左右全拉伸，竖直方向的 anchor 根据需要可以保持
                 _container.anchorMin = new Vector2(0, 1);
-                _container.anchorMax = Vector2.one;
-                _container.pivot = new Vector2(0.5f, 1f);
+                _container.anchorMax = new Vector2(1, 1);
+                // 根据 childAlignment 调整 pivot
+                _container.pivot = GetPivotFromTextAnchor(childAlignment);
             }
             else
             {
-                _container.anchorMin = Vector2.zero;
-                _container.anchorMax = new Vector2(0, 1f);
-                _container.pivot = new Vector2(0, 0.5f);
+                // 横向滚动
+                _container.anchorMin = new Vector2(0, 0);
+                _container.anchorMax = new Vector2(0, 1);
+                _container.pivot = GetPivotFromTextAnchor(childAlignment);
             }
             _container.offsetMax = Vector2.zero;
             _container.offsetMin = Vector2.zero;
@@ -1612,7 +1638,7 @@ namespace EnhancedUI.EnhancedScroller
             _layoutGroup = _container.GetComponent<HorizontalOrVerticalLayoutGroup>();
             _layoutGroup.spacing = spacing;
             _layoutGroup.padding = padding;
-            _layoutGroup.childAlignment = TextAnchor.UpperLeft;
+            _layoutGroup.childAlignment = childAlignment;
             _layoutGroup.childForceExpandHeight = true;
             _layoutGroup.childForceExpandWidth = true;
 
@@ -1642,6 +1668,8 @@ namespace EnhancedUI.EnhancedScroller
             _lastScrollbarVisibility = scrollbarVisibility;
 
             _initialized = true;
+            
+            LayoutRebuilder.ForceRebuildLayoutImmediate(_container);
         }
 
         void Update()

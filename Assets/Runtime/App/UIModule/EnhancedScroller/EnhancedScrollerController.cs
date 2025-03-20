@@ -28,7 +28,7 @@ public class EnhancedScrollerController : MonoBehaviour, IEnhancedScrollerDelega
         // 订阅回收事件
         scroller.cellViewWillRecycle += OnCellViewWillRecycle;
     }
-    
+
     private void OnDestroy()
     {
         if (scroller != null)
@@ -41,41 +41,6 @@ public class EnhancedScrollerController : MonoBehaviour, IEnhancedScrollerDelega
     {
         // 当 cellView 被回收前调用 HideData
         cellView.HideData();
-    }
-    
-    /// <summary>
-    /// 设置或获取列表项之间的全局间隔
-    /// </summary>
-    public float Spacing
-    {
-        get
-        {
-            if (orientation == EnhancedScroller.ScrollDirectionEnum.Horizontal)
-            {
-                var layout = scroller.GetComponentInChildren<HorizontalLayoutGroup>();
-                return layout != null ? layout.spacing : 0f;
-            }
-            else
-            {
-                var layout = scroller.GetComponentInChildren<VerticalLayoutGroup>();
-                return layout != null ? layout.spacing : 0f;
-            }
-        }
-        set
-        {
-            if (orientation == EnhancedScroller.ScrollDirectionEnum.Horizontal)
-            {
-                var layout = scroller.GetComponentInChildren<HorizontalLayoutGroup>();
-                if (layout != null)
-                    layout.spacing = value;
-            }
-            else
-            {
-                var layout = scroller.GetComponentInChildren<VerticalLayoutGroup>();
-                if (layout != null)
-                    layout.spacing = value;
-            }
-        }
     }
 
     /// <summary>
