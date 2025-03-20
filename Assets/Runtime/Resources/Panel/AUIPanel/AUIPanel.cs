@@ -75,54 +75,51 @@ namespace Yuki
             });
             redPointRepository.Agg.AddNode(RedPointKey.Play_LEVEL1_SHOP);
             redPointRepository.Agg.AddNode(RedPointKey.Play_LEVEL1_HOME);
-            // 注册不同数据类型的预制体
-            scrollerController.RegisterPrefab<HeaderBaseCellData>(headerPrefab);
-            scrollerController.RegisterPrefab<ContentBaseCellData>(itemPrefab);
 
             // 构造数据
             List<BaseCellData> data = new List<BaseCellData>
             {
-                new HeaderBaseCellData()
+                new HeaderCellData()
                 {
                     title = "列表1"
                 },
-                new ContentBaseCellData()
+                new ContentCellData()
                 {
                     pool = pool,
                     dataIndexList = Enumerable.Range(0, 10).ToList()
                 },
-                new HeaderBaseCellData()
+                new HeaderCellData()
                 {
                     title = "列表2"
                 },
-                new ContentBaseCellData()
+                new ContentCellData()
                 {
                     pool = pool,
                     dataIndexList = Enumerable.Range(0, 20).ToList()
                 },
-                new HeaderBaseCellData()
+                new HeaderCellData()
                 {
                     title = "列表3"
                 },
-                new ContentBaseCellData()
+                new ContentCellData()
                 {
                     pool = pool,
                     dataIndexList = Enumerable.Range(0, 50).ToList()
                 },
-                new HeaderBaseCellData()
+                new HeaderCellData()
                 {
                     title = "列表4"
                 },
-                new ContentBaseCellData()
+                new ContentCellData()
                 {
                     pool = pool,
                     dataIndexList = Enumerable.Range(0, 10).ToList()
                 },
-                new HeaderBaseCellData()
+                new HeaderCellData()
                 {
                     title = "列表5"
                 },
-                new ContentBaseCellData()
+                new ContentCellData()
                 {
                     pool = pool,
                     dataIndexList = Enumerable.Range(0, 40).ToList()

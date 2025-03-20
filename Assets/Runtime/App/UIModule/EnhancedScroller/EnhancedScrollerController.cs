@@ -1,8 +1,6 @@
-using System;
 using System.Collections.Generic;
 using UnityEngine;
 using EnhancedUI.EnhancedScroller;
-using UnityEngine.UI;
 
 /// <summary>
 /// EnhancedScroller 的通用封装，适用于任何类型的 BaseCellData。
@@ -18,8 +16,7 @@ public class EnhancedScrollerController : MonoBehaviour, IEnhancedScrollerDelega
     // 维护数据
     private List<BaseCellData> dataList = new List<BaseCellData>();
 
-    // 维护 数据类型 -> 预制体 映射关系（外部注入）
-    private Dictionary<Type, EnhancedScrollerCellView> prefabMapping = new Dictionary<Type, EnhancedScrollerCellView>();
+    [SerializeField] private List<EnhancedScrollerCellView> ScrollerCellViews;
     
     private void Awake()
     {
@@ -41,14 +38,6 @@ public class EnhancedScrollerController : MonoBehaviour, IEnhancedScrollerDelega
     {
         // 当 cellView 被回收前调用 HideData
         cellView.HideData();
-    }
-
-    /// <summary>
-    /// 外部注册数据类型对应的预制体
-    /// </summary>
-    public void RegisterPrefab<T>(EnhancedScrollerCellView prefab) where T : BaseCellData
-    {
-        prefabMapping[typeof(T)] = prefab;
     }
 
     /// <summary>
@@ -78,9 +67,10 @@ public class EnhancedScrollerController : MonoBehaviour, IEnhancedScrollerDelega
         // 1. 先尝试数据类的 CalculateHeight()
         float size = data.CalculateSize();
         if (size > 0) return size;
-
-        // 2. 如果未指定，则从注册的 prefab 获取默认高度
-        if (prefabMapping.TryGetValue(data.GetType(), out EnhancedScrollerCellView prefab) && prefab != null)
+        
+        // 2. 如果未指定，则从 prefab 获取默认高度
+        var prefab = GetScrollerView(data);
+        if (prefab != null)
         {
             Rect rect = prefab.GetComponent<RectTransform>().rect;
             return orientation == EnhancedScroller.ScrollDirectionEnum.Horizontal ? rect.width : rect.height;
@@ -95,8 +85,9 @@ public class EnhancedScrollerController : MonoBehaviour, IEnhancedScrollerDelega
     {
         BaseCellData data = dataList[dataIndex];
 
-        // 根据数据类型，获取相应的预制体
-        if (!prefabMapping.TryGetValue(data.GetType(), out EnhancedScrollerCellView prefab))
+        // 根据数据类型名称，获取相应的预制体
+        var prefab = GetScrollerView(data);
+        if (prefab == null)
         {
             Debug.LogError($"未注册 {data.GetType().Name} 对应的预制体！");
             return null;
@@ -114,5 +105,15 @@ public class EnhancedScrollerController : MonoBehaviour, IEnhancedScrollerDelega
     public void RefreshDataPreservePosition()
     {
         scroller.ReloadData(scroller.NormalizedScrollPosition);
+    }
+    
+    /// <summary>
+    /// 获取数据对应的视图类
+    /// 目前的约束是数据拟定为 XXXCellData 然后它对应的视图就是 XXXCellView
+    /// </summary>
+    private EnhancedScrollerCellView GetScrollerView(BaseCellData data) 
+    {
+        string viewName = data.GetType().Name.Replace("CellData", "CellView");
+        return ScrollerCellViews.Find(x => x.name == viewName);
     }
 }

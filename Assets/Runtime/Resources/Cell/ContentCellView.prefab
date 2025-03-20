@@ -74,6 +74,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: cd4414e3d44c65e479bc90fc7d956831, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  ScrollerCellViews:
+  - {fileID: 3490892325562262382, guid: 8fe1b89c0f893b3428320fa2df2ec821, type: 3}
 --- !u!114 &938737097156836937
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -146,7 +148,7 @@ GameObject:
   - component: {fileID: 645318703716414536}
   - component: {fileID: 8770156409220582487}
   m_Layer: 0
-  m_Name: TestContent
+  m_Name: ContentCellView
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -194,8 +196,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   cellIdentifier: Content
   controller: {fileID: 701937592402867964}
-  itemCellViewPrefab: {fileID: 3490892325562262382, guid: 8fe1b89c0f893b3428320fa2df2ec821,
-    type: 3}
 --- !u!1 &7728116160901521311
 GameObject:
   m_ObjectHideFlags: 0
