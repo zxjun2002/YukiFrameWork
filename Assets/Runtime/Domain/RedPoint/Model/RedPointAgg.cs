@@ -176,9 +176,23 @@ namespace Domain
                     pendingSubscriptions[key] = new List<RedPointNode.RedPointChangeDelegate>();
                 }
                 pendingSubscriptions[key].Add(cb);
+                //可选比如服务端点亮的红点,消息早于回调,直接调用回调
+                cb?.Invoke(0);
                 return;
             }
             node.OnRedPointChange += cb;
+            //可选比如服务端点亮的红点,消息早于回调,直接调用回调
+            node.OnRedPointChange?.Invoke(node.redNum);
+        }
+        
+        public void DelteCallback(string key, RedPointNode.RedPointChangeDelegate cb)
+        {
+            RedPointNode node = FindNode(key);
+            if (node == null)
+            {
+                return;
+            }
+            node.OnRedPointChange -= cb;
         }
 
         public int GetRedpointNum(string key)
