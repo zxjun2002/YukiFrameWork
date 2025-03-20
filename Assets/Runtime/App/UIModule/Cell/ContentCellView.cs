@@ -1,13 +1,10 @@
 using System.Collections.Generic;
 using EnhancedUI.EnhancedScroller;
-using UnityEngine;
-using UnityEngine.Pool;
 
 /// <summary>普通内容项数据类型</summary>
 public class ContentCellData : BaseCellData
 {
     public List<int> dataIndexList;
-    public ObjectPool<GameObject> pool;
 }
 
 public class ContentCellView : EnhancedScrollerCellView

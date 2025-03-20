@@ -14,6 +14,7 @@ namespace Yuki
         [Autowired] RedPointRepository redPointRepository;
         [Autowired] HttpAppService httpAppService;
         [Autowired] GuideRepository guideRepository;
+        [Autowired] IUIManager uiManager;
         [SerializeField] private UIBeginnerGuideDataList BeginnerGuideDataList;
         List<UIListItemData> TestUIList_ItemDatas = new List<UIListItemData>();//定义列表项数据List
         private ObjectPool<GameObject> pool;
@@ -29,25 +30,8 @@ namespace Yuki
 
         public override async void OnShow(BasePanelArg arg = null)
         {
-            CheckBtn.onClick.AddListener(CheckBtnCallback);
             base.OnShow();
-            pool = new ObjectPool<GameObject>(() =>
-                {
-                    GameObject newInstance = Instantiate(Resources.Load("Cell/TestItem")) as GameObject;
-                    return newInstance;
-                },
-                (obj) =>
-                {
-                    obj.SetActive(true);
-                },
-                (obj) =>
-                {
-                    obj.SetActive(false);
-                },
-                (obj) =>
-                {
-                    Destroy(obj);
-                },true,30);
+            CheckBtn.onClick.AddListener(CheckBtnCallback);
             //最后写入数据并且赋值
             TestUIList_ItemDatas.Clear();
             for (int i = 0; i < 100; i++)
@@ -69,12 +53,7 @@ namespace Yuki
             TestUIList.SetIndexData = SetIndexData_Item;
             TestUIList.SetCount(TestUIList_ItemDatas.Count);
             // await httpAppService.SendHttpReq(new Login_RequestHandler(114514, "Yuki"));
-            redPointRepository.Agg.AddNode(RedPointKey.Play_LEVEL1_SHOP);
-            redPointRepository.Agg.SetCallBack(RedPointKey.Play_LEVEL1, (node) =>
-            {
-                GameLogger.LogGreen(node);
-            });
-            redPointRepository.Agg.AddNode(RedPointKey.Play_LEVEL1_HOME);
+            redPointRepository.Agg.SetCallback(RedPointKey.Play_LEVEL1,Play_LEVELRedDotCallback);
 
             // 构造数据
             List<BaseCellData> data = new List<BaseCellData>
@@ -85,7 +64,6 @@ namespace Yuki
                 },
                 new ContentCellData()
                 {
-                    pool = pool,
                     dataIndexList = Enumerable.Range(0, 10).ToList()
                 },
                 new HeaderCellData()
@@ -94,7 +72,6 @@ namespace Yuki
                 },
                 new ContentCellData()
                 {
-                    pool = pool,
                     dataIndexList = Enumerable.Range(0, 20).ToList()
                 },
                 new HeaderCellData()
@@ -103,7 +80,6 @@ namespace Yuki
                 },
                 new ContentCellData()
                 {
-                    pool = pool,
                     dataIndexList = Enumerable.Range(0, 50).ToList()
                 },
                 new HeaderCellData()
@@ -112,7 +88,6 @@ namespace Yuki
                 },
                 new ContentCellData()
                 {
-                    pool = pool,
                     dataIndexList = Enumerable.Range(0, 10).ToList()
                 },
                 new HeaderCellData()
@@ -121,7 +96,6 @@ namespace Yuki
                 },
                 new ContentCellData()
                 {
-                    pool = pool,
                     dataIndexList = Enumerable.Range(0, 40).ToList()
                 },
             };
@@ -131,15 +105,23 @@ namespace Yuki
 
         public override void OnClose()
         {
-            CheckBtn.onClick.RemoveListener(CheckBtnCallback);
             base.OnClose();
+            CheckBtn.onClick.RemoveListener(CheckBtnCallback);
+            redPointRepository.Agg.DeleteCallback(RedPointKey.Play_LEVEL1, Play_LEVELRedDotCallback);
         }
         #endregion
 
         #region 控件回调
         void CheckBtnCallback()
         {
-            // TODO: Add your logic here
+            uiManager.ClosePanel<AUIPanel>();
+        }
+        #endregion
+
+        #region 事件回调
+        void Play_LEVELRedDotCallback(int num)
+        {
+            GameLogger.LogGreen(num);
         }
         #endregion
     }

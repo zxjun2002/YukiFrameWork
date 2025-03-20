@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 namespace Domain
 {
@@ -165,7 +166,7 @@ namespace Domain
             }
         }
 
-        public void SetCallBack(string key, RedPointNode.RedPointChangeDelegate cb)
+        public void SetCallback(string key, RedPointNode.RedPointChangeDelegate cb)
         {
             RedPointNode node = FindNode(key);
             if (node == null)
@@ -175,9 +176,20 @@ namespace Domain
                 {
                     pendingSubscriptions[key] = new List<RedPointNode.RedPointChangeDelegate>();
                 }
+                if (pendingSubscriptions[key].Contains(cb))
+                {
+                    GameLogger.LogError("重复添加的红点委托");
+                    return;
+                }
                 pendingSubscriptions[key].Add(cb);
                 //可选比如服务端点亮的红点,消息早于回调,直接调用回调
                 cb?.Invoke(0);
+                return;
+            }
+            // 判断节点已存在的回调中是否已包含该 cb
+            if (node.OnRedPointChange != null && node.OnRedPointChange.GetInvocationList().Any(existing => existing.Equals(cb)))
+            {
+                GameLogger.LogError("重复添加的红点委托");
                 return;
             }
             node.OnRedPointChange += cb;
@@ -185,11 +197,17 @@ namespace Domain
             node.OnRedPointChange?.Invoke(node.redNum);
         }
         
-        public void DelteCallback(string key, RedPointNode.RedPointChangeDelegate cb)
+        public void DeleteCallback(string key, RedPointNode.RedPointChangeDelegate cb)
         {
             RedPointNode node = FindNode(key);
             if (node == null)
             {
+                // 节点没创建,回收回调
+                if (pendingSubscriptions.ContainsKey(key))
+                {
+                    pendingSubscriptions[key].Remove(cb);
+                }
+                cb?.Invoke(0);
                 return;
             }
             node.OnRedPointChange -= cb;
