@@ -60,7 +60,7 @@ public class GameSettingMgr : InjectableMonoBehaviour
             .End();
         await foreach (var _ in UniTaskAsyncEnumerable.EveryUpdate(PlayerLoopTiming.Update).WithCancellation(this.GetCancellationTokenOnDestroy()))
         {
-            builder.TreeTick();
+            builder.TreeTick(false);
         }
     }
     

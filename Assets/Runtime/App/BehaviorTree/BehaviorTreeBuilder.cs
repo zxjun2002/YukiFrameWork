@@ -24,9 +24,13 @@ public partial class BehaviorTreeBuilder
             nodeStack.Push(behavior);
         }
     }
-    public void TreeTick()
+    /// <summary>
+    /// 运行树
+    /// </summary>
+    /// <param name="repeated">运行结束后是否回到根节点继续运行</param>
+    public void TreeTick(bool repeated = true)
     {
-        bhTree.Tick();
+        bhTree.Tick(repeated);
     }
     public BehaviorTreeBuilder Back()
     {

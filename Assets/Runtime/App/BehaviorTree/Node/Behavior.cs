@@ -16,8 +16,9 @@ public abstract class Behavior
     public bool IsSuccess => status == EStatus.Success;//是否成功
     public bool IsFailure => status == EStatus.Failure;//是否失败
     public bool IsRunning => status == EStatus.Running;//是否正在运行
-    protected EStatus status;//运行状态
-    public Behavior()
+    private EStatus status;//运行状态
+
+    protected Behavior()
     {
         status = EStatus.Invalid;
     }

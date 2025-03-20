@@ -15,16 +15,19 @@ public class Repeat : Decorator
     }
     protected override EStatus OnUpdate()
     {
-        while (true)
-        {
-            child.Tick();
-            if(child.IsRunning)
-                return EStatus.Running;
-            if(child.IsFailure)
-                return EStatus.Failure;
-            //子节点执行成功，就增加一次计算，达到设定限度才返回成功
-            if(++conunter >= limit)
-                return EStatus.Success;
-        }
+        EStatus result = child.Tick();
+        if(result == EStatus.Running)
+            return EStatus.Running;
+        if(result == EStatus.Failure)
+            return EStatus.Failure;
+        
+        // 子节点执行成功
+        conunter++;
+        if(conunter >= limit)
+            return EStatus.Success;
+    
+        // 重置子节点以便下一次执行
+        child.Reset();
+        return EStatus.Running;
     }
 }
