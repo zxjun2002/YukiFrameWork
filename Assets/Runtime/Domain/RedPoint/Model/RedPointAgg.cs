@@ -213,7 +213,7 @@ namespace Domain
             node.OnRedPointChange -= cb;
         }
 
-        public int GetRedpointNum(string key)
+        public int GetRedPointNum(string key)
         {
             RedPointNode node = FindNode(key);
             if (node == null)
