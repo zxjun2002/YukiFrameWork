@@ -114,6 +114,6 @@ public class EnhancedScrollerController : MonoBehaviour, IEnhancedScrollerDelega
     private EnhancedScrollerCellView GetScrollerView(BaseCellData data) 
     {
         string viewName = data.GetType().Name.Replace("CellData", "CellView");
-        return ScrollerCellViews.Find(x => x.name == viewName);
+        return ScrollerCellViews.Find(x => x.GetType().Name == viewName);
     }
 }

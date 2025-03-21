@@ -36,71 +36,86 @@ namespace Yuki
             TestUIList_ItemDatas.Clear();
             for (int i = 0; i < 100; i++)
             {
-                var itemData = new Test_UIListItemData
+                UIListItemData itemData = null;
+                switch (i % 2)
                 {
-                    Index = i,
-                    num = i,
-                    GuideAction = async go =>
-                    {
-                        BeginnerGuideDataList.SetGuideTarget(go);
-                        await UniTask.DelayFrame(1);
-                        guideRepository.AddGuide(BeginnerGuideDataList);
-                        guideRepository.PlayGuide();
-                    }
-                };
+                    case 0:
+                        itemData = new Test_UIListItemData
+                        {
+                            Index = i,
+                            num = i,
+                            GuideAction = async go =>
+                            {
+                                BeginnerGuideDataList.SetGuideTarget(go);
+                                await UniTask.DelayFrame(1);
+                                guideRepository.AddGuide(BeginnerGuideDataList);
+                                guideRepository.PlayGuide();
+                            }
+                        };
+                        break;
+                    case 1:
+                        itemData = new TestMulti_UIListItemData()
+                        {
+                            num = i,
+                        };
+                        break;
+                }
                 TestUIList_ItemDatas.Add(itemData);
             }
-            TestUIList.SetIndexData = SetIndexData_Item;
-            TestUIList.SetCount(TestUIList_ItemDatas.Count);
-            // await httpAppService.SendHttpReq(new Login_RequestHandler(114514, "Yuki"));
-            redPointRepository.Agg.SetCallback(RedPointKey.Play_LEVEL1,Play_LEVELRedDotCallback);
-
-            // 构造数据
-            List<BaseCellData> data = new List<BaseCellData>
-            {
-                new HeaderCellData()
-                {
-                    title = "列表1"
-                },
-                new ContentCellData()
-                {
-                    dataIndexList = Enumerable.Range(0, 10).ToList()
-                },
-                new HeaderCellData()
-                {
-                    title = "列表2"
-                },
-                new ContentCellData()
-                {
-                    dataIndexList = Enumerable.Range(0, 20).ToList()
-                },
-                new HeaderCellData()
-                {
-                    title = "列表3"
-                },
-                new ContentCellData()
-                {
-                    dataIndexList = Enumerable.Range(0, 50).ToList()
-                },
-                new HeaderCellData()
-                {
-                    title = "列表4"
-                },
-                new ContentCellData()
-                {
-                    dataIndexList = Enumerable.Range(0, 10).ToList()
-                },
-                new HeaderCellData()
-                {
-                    title = "列表5"
-                },
-                new ContentCellData()
-                {
-                    dataIndexList = Enumerable.Range(0, 40).ToList()
-                },
-            };
-            // 传入数据
-            scrollerController.SetData(data);
+            
+            TestUIListMulti.SetIndexData = SetIndexData_Item;
+            TestUIListMulti.SetCount(TestUIList_ItemDatas.Count);
+            // TestUIList.SetIndexData = SetIndexData_Item;
+            // TestUIList.SetCount(TestUIList_ItemDatas.Count);
+            // // await httpAppService.SendHttpReq(new Login_RequestHandler(114514, "Yuki"));
+            // redPointRepository.Agg.SetCallback(RedPointKey.Play_LEVEL1,Play_LEVELRedDotCallback);
+            //
+            // // 构造数据
+            // List<BaseCellData> data = new List<BaseCellData>
+            // {
+            //     new HeaderCellData()
+            //     {
+            //         title = "列表1"
+            //     },
+            //     new ContentCellData()
+            //     {
+            //         dataIndexList = Enumerable.Range(0, 10).ToList()
+            //     },
+            //     new HeaderCellData()
+            //     {
+            //         title = "列表2"
+            //     },
+            //     new ContentCellData()
+            //     {
+            //         dataIndexList = Enumerable.Range(0, 20).ToList()
+            //     },
+            //     new HeaderCellData()
+            //     {
+            //         title = "列表3"
+            //     },
+            //     new ContentCellData()
+            //     {
+            //         dataIndexList = Enumerable.Range(0, 50).ToList()
+            //     },
+            //     new HeaderCellData()
+            //     {
+            //         title = "列表4"
+            //     },
+            //     new ContentCellData()
+            //     {
+            //         dataIndexList = Enumerable.Range(0, 10).ToList()
+            //     },
+            //     new HeaderCellData()
+            //     {
+            //         title = "列表5"
+            //     },
+            //     new ContentCellData()
+            //     {
+            //         dataIndexList = Enumerable.Range(0, 40).ToList()
+            //     },
+            // };
+            // // 传入数据
+            // scrollerController.SetData(data);
         }
 
         public override void OnClose()

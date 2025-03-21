@@ -11,5 +11,6 @@ namespace Yuki
         [SerializeField] private Button CheckBtn;
         [SerializeField] private UIList TestUIList;
         [SerializeField] private EnhancedScrollerController scrollerController;
+        [SerializeField] private UIListMulti TestUIListMulti;
     }
 }

@@ -15,7 +15,7 @@ public abstract class UIListItem : MonoBehaviour
 
     public virtual void AddShowData()
     {
-        showData += ShowData;
+        showData ??= ShowData;
     }
 
     protected abstract void ShowData(UIListItemData baseData);
