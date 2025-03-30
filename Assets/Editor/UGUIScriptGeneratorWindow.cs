@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Text.RegularExpressions;
 using TMPro;
 
 public class UGUIScriptGenerator : EditorWindow
@@ -155,7 +156,7 @@ public class UGUIScriptGenerator : EditorWindow
                     if (element.uiObject != null)
                     {
                         element.selectedComponentType = GetDefaultComponentType(element.uiObject);
-                        element.fieldName = newUiObject.name + "_" + element.selectedComponentType;
+                        element.fieldName = Regex.Replace(newUiObject.name, @"\s", "") + "_" + element.selectedComponentType;
                         CheckRootNodeConsistency(); // 自动检查一致性
                     }
                 }
@@ -729,7 +730,7 @@ public class UIElement
     public void UpdateSelectedComponentType(string newType)
     {
         selectedComponentType = newType;
-        fieldName = uiObject.name + "_" + selectedComponentType;
+        fieldName = Regex.Replace(uiObject.name, @"\s", "") + "_" + selectedComponentType;
     }
 }
 //扩展方法,去掉生成UIPanel.View的后缀,正确生成Class
