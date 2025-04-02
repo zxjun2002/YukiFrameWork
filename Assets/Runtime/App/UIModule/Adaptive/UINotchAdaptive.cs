@@ -7,7 +7,7 @@ public class UINotchAdaptive : InjectableMonoBehaviour {
         None,
         MoveDown,  //向下移动
         MoveUp, //向上移动
-        DowmStretch, //下边缘向下拉伸
+        DownStretch, //下边缘向下拉伸
         UpStretch,//上边缘向上拉伸
         UpShorten,//下边缘向上缩短
         DownShorten,//上边缘向下缩短
@@ -51,7 +51,7 @@ public class UINotchAdaptive : InjectableMonoBehaviour {
                 rect.offsetMin = new Vector2(offsetMin.x, offsetMin.y + disBottom);
                 rect.offsetMax = new Vector2(offsetMax.x, offsetMax.y + disBottom);
             }
-        } else if (this.mode == AdaptiveMode.DowmStretch) {
+        } else if (this.mode == AdaptiveMode.DownStretch) {
             if (anchorMin.y == anchorMax.y) {   //垂直方向上的锚点在同一个点
                 //直接改PosY就好了
                 rect.sizeDelta = new Vector2(sizeDelta.x, sizeDelta.y + disTop);
