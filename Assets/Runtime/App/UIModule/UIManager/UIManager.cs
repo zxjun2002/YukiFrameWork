@@ -6,6 +6,7 @@ using UnityEngine;
 [Component]
 public class UIManager:IUIManager
 {
+    private Camera _uiCamera;
     private Transform _uiRoot;
     // 已打开界面的缓存字典
     private Dictionary<string, BasePanel> _opelPanelDict = new Dictionary<string, BasePanel>();
@@ -32,6 +33,11 @@ public class UIManager:IUIManager
             };
             return _uiRoot;
         }
+    }
+
+    public void Init(Camera uiCamera)
+    { 
+        _uiCamera = uiCamera;
     }
 
     public T OpenPanel<T>(BasePanelArg panelArg = null) where T : BasePanel, new()
@@ -77,7 +83,7 @@ public class UIManager:IUIManager
         GameObject panelPrefab = Resources.Load<GameObject>(path);
         GameObject panelObject = GameObject.Instantiate(panelPrefab, UIRoot, false);
         BasePanel panel = panelObject.GetComponent<BasePanel>();
-        panel.Init();
+        panel.Init(_uiCamera);
         return panel;
     }
 }

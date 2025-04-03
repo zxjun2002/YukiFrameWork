@@ -23,9 +23,9 @@ namespace Yuki
             return TestUIList_ItemDatas[idx];
         }
         #region 生命周期
-        public override void Init()
+        public override void Init(Camera uiCamera)
         {
-            base.Init();
+            base.Init(uiCamera);
         }
 
         public override async void OnShow(BasePanelArg arg = null)

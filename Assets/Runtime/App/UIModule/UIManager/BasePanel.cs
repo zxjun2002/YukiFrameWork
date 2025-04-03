@@ -3,8 +3,15 @@ using UnityEngine;
 
 public abstract class BasePanel: MonoBehaviour
 {
+    private Canvas canvas;
     //子类用于重写的初始化函数,abstract代表必须重写
-    public virtual void Init(){IoCHelper.Instance.Inject(this);}
+    public virtual void Init(Camera uiCamera)
+    {
+        IoCHelper.Instance.Inject(this);
+        canvas = transform.Find("Canvas").GetComponent<Canvas>();
+        canvas.renderMode = RenderMode.ScreenSpaceCamera;
+        canvas.worldCamera = uiCamera;
+    }
     //子类用于重写的显示时函数
     public virtual void OnShow(BasePanelArg arg = null) { }
     //子类用于重写的关闭时函数
@@ -18,7 +25,7 @@ public abstract class BasePanel: MonoBehaviour
 
     public void SetPanelOrder(int sortinglayer)
     {
-        transform.Find("Canvas").GetComponent<Canvas>().sortingOrder = sortinglayer;
+        canvas.sortingOrder = sortinglayer;
     }
     public void ClosePanel()
     {

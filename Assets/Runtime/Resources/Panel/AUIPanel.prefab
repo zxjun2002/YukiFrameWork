@@ -521,7 +521,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 48476d1e065f7fe4bb2f12ce13a163a7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  loopListBank: {fileID: 0}
   isUseMultiPrefabs: 1
   singlePrefab: {fileID: 6203218896575287002, guid: fdbbcd6a58d29804787ecb0463b82700,
     type: 3}

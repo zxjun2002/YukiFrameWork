@@ -16,6 +16,7 @@ public class GameSettingMgr : InjectableMonoBehaviour
     [Autowired] private IHttpModule httpModule;
     [Autowired] private HttpAppService httpAppService;
     [Autowired] private GuideRepository guideRepository;
+    [SerializeField] private Camera uiCamera;
     BehaviorTreeBuilder builder;
     /// <summary>
     /// 这是一个Unity特有的属性，用于指定Initialize方法作为运行时初始化方法，
@@ -49,6 +50,7 @@ public class GameSettingMgr : InjectableMonoBehaviour
         await UniTask.DelayFrame(500);
         eventCenter.EventTrigger(new StringEventData(CustomEventType.TestEventWithParam,configTable.GetConfig<BuffCtRacastSet>().dic[102].buffName));
         eventCenter.EventTrigger(CustomEventType.TestEventWithoutParam);
+        uiManager.Init(uiCamera);
         uiManager.OpenPanel<AUIPanel>();
         builder.Repeat(3)
             .Sequence()
