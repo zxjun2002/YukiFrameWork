@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using EnhancedUI.EnhancedScroller;
@@ -53,6 +54,47 @@ public class EnhancedScrollerController : MonoBehaviour, IEnhancedScrollerDelega
             scroller.ReloadData(); // 重新加载数据
         }
     }
+    
+    /// <summary>
+    /// 设置列表滚动速度
+    /// </summary>
+    /// <param name="amount"></param>
+    public void AddVelocity(float amount)
+    {
+        scroller.LinearVelocity = amount;
+    }
+    
+    /// <summary>
+    /// 老虎机转到指定数据下标
+    /// </summary>
+    /// <param name="targetIndex">指定数据下标</param>
+    /// <param name="loops">循环圈数</param>
+    /// <param name="tweenTime">补间动画时间,单位(秒)</param>
+    public void SpinToIndex(int targetIndex, int loops, float tweenTime)
+    {
+        // 确保循环模式开启
+        scroller.Loop = true;
+
+        // 计算要跳转的「远端」索引
+        // realTargetIndex：真正想落到的下标
+        // loops：想多滚几圈
+        // scroller.NumberOfCells：总条目数
+        int bigIndex = targetIndex + scroller.NumberOfCells * loops;
+
+        // 调用 JumpToDataIndex 做一次性补间动画
+        scroller.JumpToDataIndex(
+            bigIndex,
+            scrollerOffset: 0.5f,     // 让目标 cell 最终位于可视区域中间 (可根据需求调整)
+            cellOffset: 0.5f,        // 单元格也居中
+            useSpacing: true,
+            tweenType: scroller.snapTweenType,  // 也可自定义 EaseInOut、Bounce 等
+            tweenTime: tweenTime,               // 动画时长
+            jumpComplete: () =>
+            {
+                Debug.Log($"完成单次补间动画，多圈后停在下标 {targetIndex}");
+            }
+        );
+    }
 
     /// <summary>返回数据总数</summary>
     public int GetNumberOfCells(EnhancedScroller scroller) => dataList.Count;
@@ -62,7 +104,9 @@ public class EnhancedScrollerController : MonoBehaviour, IEnhancedScrollerDelega
     /// </summary>
     public float GetCellViewSize(EnhancedScroller scroller, int dataIndex)
     {
-        var data = dataList[dataIndex];
+        // 对 dataIndex 进行取模，确保在范围内
+        int index = dataList.Count > 0 ? dataIndex % dataList.Count : 0;
+        var data = dataList[index];
 
         // 1. 先尝试数据类的 CalculateHeight()
         float size = data.CalculateSize();
@@ -83,7 +127,9 @@ public class EnhancedScrollerController : MonoBehaviour, IEnhancedScrollerDelega
     /// <summary>返回单元格视图</summary>
     public EnhancedScrollerCellView GetCellView(EnhancedScroller scroller, int dataIndex, int cellIndex)
     {
-        BaseCellData data = dataList[dataIndex];
+        // 对 dataIndex 做模运算
+        int index = dataList.Count > 0 ? dataIndex % dataList.Count : 0;
+        BaseCellData data = dataList[index];
 
         // 根据数据类型名称，获取相应的预制体
         var prefab = GetScrollerView(data);
