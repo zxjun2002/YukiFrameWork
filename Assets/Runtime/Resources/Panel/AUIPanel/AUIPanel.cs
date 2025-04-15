@@ -120,7 +120,7 @@ namespace Yuki
             };
             // 传入数据
             scrollerController.SetData(data);
-            scrollerController.SpinToIndex(2, 2, 2f);
+            scrollerController.SpinToIndexAsync(2, 2, 2f).Forget();
             // scrollerController.AddVelocity((UnityEngine.Random.Range(0, 1f) > 0.5f ? 1f : -1f) * UnityEngine.Random.Range(minVelocity, maxVelocity));
         }
 

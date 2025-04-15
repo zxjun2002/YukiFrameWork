@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
@@ -66,65 +67,62 @@ public class EnhancedScrollerController : MonoBehaviour, IEnhancedScrollerDelega
     }
     
     /// <summary>
-    /// 老虎机转到指定数据下标
+    /// 异步补间方法：滚动到目标下标，并返回任务以等待动画完成
     /// </summary>
-    /// <param name="targetIndex">指定数据下标</param>
-    /// <param name="loops">循环圈数</param>
-    /// <param name="tweenTime">补间动画时间,单位(秒)</param>
-    public void SpinToIndex(int targetIndex, int loops, float tweenTime)
+    public async UniTask SpinToIndexAsync(
+        int   targetIndex,   // 想停的条目下标（0‑based）
+        int   loops,         // 总圈数
+        float totalTime)     // 整段动画时长（秒）
     {
-        // 确保循环模式开启
-        scroller.Loop = true;
+        scroller.Loop = true;           // 无限循环模式
+        scroller.snapping = false;      // 关掉 Snap，免得中途误触
 
-        // 计算要跳转的「远端」索引
-        // realTargetIndex：真正想落到的下标
-        // loops：想多滚几圈
-        // scroller.NumberOfCells：总条目数
-        int bigIndex = targetIndex + scroller.NumberOfCells * loops;
+        int   cells           = scroller.NumberOfCells;
+        float oneLoopDistance = scroller.GetScrollPositionForCellViewIndex(
+            cells, EnhancedScroller.CellViewPositionEnum.Before);
 
-        // 调用 JumpToDataIndex 做一次性补间动画
+        /* ——————————————————————
+           ① 先“自由旋转” loops‑1 圈
+           —————————————————————— */
+        int   freeLoops = Mathf.Max(loops - 1, 0);
+        float freeTime  = totalTime * 0.75f;          // 前 75 % 时间高速旋转
+        float stopTime  = totalTime - freeTime;       // 后 25 % 用补间精准收尾
+
+        if (freeLoops > 0)
+        {
+            // 用恒定速度跑 freeLoops 圈
+            float speed =  (oneLoopDistance * freeLoops) / freeTime; // 像素/秒
+            // 方向：垂直向下用负值，横向向右用正值，可按需要改符号
+            scroller.LinearVelocity = -speed;
+
+            await UniTask.Delay(TimeSpan.FromSeconds(freeTime));
+            scroller.LinearVelocity = 0;              // 刹车
+        }
+
+        /* ——————————————————————
+           ② 计算“最近的同内容副本”
+           —————————————————————— */
+        int currentCell = scroller.GetCellViewIndexAtPosition(scroller.ScrollPosition);
+        int forwardDelta = (targetIndex - (currentCell % cells) + cells) % cells;
+        int finalCell    = currentCell + forwardDelta;        // 永远 ≤ 1 圈
+
+        /* ——————————————————————
+           ③ 补间到 finalCell，精确落点
+           —————————————————————— */
+        var tcs = new UniTaskCompletionSource();
         scroller.JumpToDataIndex(
-            bigIndex,
-            scrollerOffset: 0.5f,     // 让目标 cell 最终位于可视区域中间 (可根据需求调整)
-            cellOffset: 0.5f,        // 单元格也居中
-            useSpacing: true,
-            tweenType: scroller.snapTweenType,  // 也可自定义 EaseInOut、Bounce 等
-            tweenTime: tweenTime,               // 动画时长
-            jumpComplete: () =>
-            {
-                Debug.Log($"完成单次补间动画，多圈后停在下标 {targetIndex}");
-            }
+            finalCell,
+            scrollerOffset : 0.5f,
+            cellOffset     : 0.5f,
+            useSpacing     : true,
+            tweenType      : scroller.snapTweenType,
+            tweenTime      : stopTime,
+            jumpComplete   : () => tcs.TrySetResult(),
+            loopJumpDirection : EnhancedScroller.LoopJumpDirectionEnum.Closest
         );
-    }
-    //异步版本,可等待
-    public async UniTask SpinToIndexAsync(int targetIndex, int loops, float tweenTime)
-    {
-        // 确保循环模式开启
-        scroller.Loop = true;
+        await tcs.Task;
 
-        // 计算「远端」索引
-        int bigIndex = targetIndex + scroller.NumberOfCells * loops;
-
-        // 创建完成通知
-        var completionSource = new UniTaskCompletionSource();
-        
-        // 启动补间动画
-        scroller.JumpToDataIndex(
-            bigIndex,
-            scrollerOffset: 0.5f,  // 目标 cell 居中
-            cellOffset: 0.5f,
-            useSpacing: true,
-            tweenType: scroller.snapTweenType,  // 补间类型
-            tweenTime: tweenTime,
-            jumpComplete: () =>
-            {
-                Debug.Log($"完成补间动画，停在下标 {targetIndex}");
-                completionSource.TrySetResult();
-            }
-        );
-        
-        // 等待补间完成
-        await completionSource.Task;
+        scroller.snapping = true;       // 如有需要再打开
     }
 
     /// <summary>返回数据总数</summary>
