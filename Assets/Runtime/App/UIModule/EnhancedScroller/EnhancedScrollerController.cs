@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using Cysharp.Threading.Tasks;
 using UnityEngine;
 using EnhancedUI.EnhancedScroller;
 
@@ -94,6 +95,36 @@ public class EnhancedScrollerController : MonoBehaviour, IEnhancedScrollerDelega
                 Debug.Log($"完成单次补间动画，多圈后停在下标 {targetIndex}");
             }
         );
+    }
+    //异步版本,可等待
+    public async UniTask SpinToIndexAsync(int targetIndex, int loops, float tweenTime)
+    {
+        // 确保循环模式开启
+        scroller.Loop = true;
+
+        // 计算「远端」索引
+        int bigIndex = targetIndex + scroller.NumberOfCells * loops;
+
+        // 创建完成通知
+        var completionSource = new UniTaskCompletionSource();
+        
+        // 启动补间动画
+        scroller.JumpToDataIndex(
+            bigIndex,
+            scrollerOffset: 0.5f,  // 目标 cell 居中
+            cellOffset: 0.5f,
+            useSpacing: true,
+            tweenType: scroller.snapTweenType,  // 补间类型
+            tweenTime: tweenTime,
+            jumpComplete: () =>
+            {
+                Debug.Log($"完成补间动画，停在下标 {targetIndex}");
+                completionSource.TrySetResult();
+            }
+        );
+        
+        // 等待补间完成
+        await completionSource.Task;
     }
 
     /// <summary>返回数据总数</summary>
