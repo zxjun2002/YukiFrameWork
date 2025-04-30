@@ -2,7 +2,8 @@
     "name": "LoopScrollRect.Runtime",
     "rootNamespace": "",
     "references": [
-        "UnityEngine.UI"
+        "UnityEngine.UI",
+        "UniTask"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

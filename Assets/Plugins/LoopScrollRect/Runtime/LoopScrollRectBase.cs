@@ -4,6 +4,8 @@ using UnityEngine.EventSystems;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Threading;
+using Cysharp.Threading.Tasks;
 
 namespace UnityEngine.UI
 {
@@ -867,6 +869,137 @@ namespace UnityEngine.UI
                         m_Content.anchoredPosition += offset;
                         m_PrevPosition += offset;
                         m_ContentStartPosition += offset;
+                        UpdateBounds(true);
+                    }
+                }
+            }
+            StopMovement();
+            UpdatePrevData();
+        }
+        
+        /// <summary>
+        /// 使用 UniTask 的异步版本，可以通过 await 等待滚动完成
+        /// </summary>
+        public async UniTask ScrollToCellWithinTimeAsync(int index, float time, CancellationToken cancellationToken = default)
+        {
+            if (totalCount >= 0 && (index < 0 || index >= totalCount))
+            {
+                Debug.LogErrorFormat("invalid index {0}", index);
+                return;
+            }
+            // 注意：这里建议你在调用前取消之前的滚动任务，
+            // 例如：_scrollCTS?.Cancel(); _scrollCTS = new CancellationTokenSource();
+
+            if (time <= 0)
+            {
+                RefillCells(index);
+                return;
+            }
+            
+            float dist = 0;
+            float offset = 0;
+            int currentFirst = reverseDirection ? GetLastItem(out offset) : GetFirstItem(out offset);
+
+            int targetLine = index / contentConstraintCount;
+            int currentLine = currentFirst / contentConstraintCount;
+
+            if (targetLine == currentLine)
+            {
+                dist = offset;
+            }
+            else
+            {
+                if (sizeHelper != null)
+                {
+                    dist = GetDimension(sizeHelper.GetItemsSize(currentFirst) - sizeHelper.GetItemsSize(index))
+                        + contentSpacing * (currentLine - targetLine - 1);
+                    dist += offset;
+                }
+                else
+                {
+                    float elementSize = (GetAbsDimension(m_ContentBounds.size) - contentSpacing * (CurrentLines - 1)) / CurrentLines;
+                    dist = elementSize * (currentLine - targetLine) + contentSpacing * (currentLine - targetLine - 1);
+                    dist -= offset;
+                }
+            }
+            float speed = Mathf.Abs(dist) / time;
+            await ScrollToCellAsync(index, speed, cancellationToken);
+        }
+
+        /// <summary>
+        /// 异步滚动方法，用 UniTask 替代原来的协程实现
+        /// </summary>
+        private async UniTask ScrollToCellAsync(int index, float speed, CancellationToken cancellationToken)
+        {
+            bool needMoving = true;
+            while (needMoving)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                // 每帧等待一次
+                await UniTask.Yield(PlayerLoopTiming.Update, cancellationToken);
+                
+                if (!m_Dragging)
+                {
+                    float move = 0;
+                    if (index < itemTypeStart)
+                    {
+                        move = -Time.deltaTime * speed;
+                    }
+                    else if (index >= itemTypeEnd)
+                    {
+                        move = Time.deltaTime * speed;
+                    }
+                    else
+                    {
+                        m_ViewBounds = new Bounds(viewRect.rect.center, viewRect.rect.size);
+                        var m_ItemBounds = GetBounds4Item(index);
+                        var offset = 0.0f;
+                        if (direction == LoopScrollRectDirection.Vertical)
+                            offset = reverseDirection ? (m_ViewBounds.min.y - m_ItemBounds.min.y) : (m_ViewBounds.max.y - m_ItemBounds.max.y);
+                        else
+                            offset = reverseDirection ? (m_ItemBounds.max.x - m_ViewBounds.max.x) : (m_ItemBounds.min.x - m_ViewBounds.min.x);
+                        // check if we cannot move on
+                        if (totalCount >= 0)
+                        {
+                            if (offset > 0 && itemTypeEnd == totalCount && !reverseDirection)
+                            {
+                                m_ItemBounds = GetBounds4Item(totalCount - 1);
+                                // reach bottom
+                                if ((direction == LoopScrollRectDirection.Vertical && m_ItemBounds.min.y > m_ViewBounds.min.y) ||
+                                    (direction == LoopScrollRectDirection.Horizontal && m_ItemBounds.max.x < m_ViewBounds.max.x))
+                                {
+                                    needMoving = false;
+                                    break;
+                                }
+                            }
+                            else if (offset < 0 && itemTypeStart == 0 && reverseDirection)
+                            {
+                                m_ItemBounds = GetBounds4Item(0);
+                                if ((direction == LoopScrollRectDirection.Vertical && m_ItemBounds.max.y < m_ViewBounds.max.y) ||
+                                    (direction == LoopScrollRectDirection.Horizontal && m_ItemBounds.min.x > m_ViewBounds.min.x))
+                                {
+                                    needMoving = false;
+                                    break;
+                                }
+                            }
+                        }
+
+                        float maxMove = Time.deltaTime * speed;
+                        if (Mathf.Abs(offset) < maxMove)
+                        {
+                            needMoving = false;
+                            move = offset;
+                        }
+                        else
+                            move = Mathf.Sign(offset) * maxMove;
+                    }
+
+                    if (move != 0)
+                    {
+                        Vector2 moveVector = GetVector(move);
+                        m_Content.anchoredPosition += moveVector;
+                        m_PrevPosition += moveVector;
+                        m_ContentStartPosition += moveVector;
                         UpdateBounds(true);
                     }
                 }

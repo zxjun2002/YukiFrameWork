@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.Threading;
+using Cysharp.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.UI;
@@ -8,87 +10,107 @@ using UnityEngine.UI;
 [DisallowMultipleComponent]
 public class UIListMulti : MonoBehaviour, LoopScrollPrefabSource, LoopScrollMultiDataSource
 {
-    [Header("Prefab 模式设置")]
-    public bool isUseMultiPrefabs = false;
-    [Tooltip("单Prefab模式下使用")]
-    public GameObject singlePrefab;
-    [Tooltip("多Prefab模式下使用")]
-    public List<UIListItem> multiPrefabs;
+    [Header("Prefab 模式设置")] public bool isUseMultiPrefabs = false;
+    [Tooltip("单Prefab模式下使用")] public GameObject singlePrefab;
+    [Tooltip("多Prefab模式下使用")] public List<UIListItem> multiPrefabs;
 
-    // 内部引用 LoopScrollRectMulti 组件
+    // 内部 LoopScrollRectMulti 引用
     private LoopScrollRectMulti loopScrollRect;
 
-    // 单Prefab模式的对象池
+    // 对象池：单Prefab
     private Stack<Transform> poolSingle = new Stack<Transform>();
-    // 多Prefab模式的对象池(以类型名字为 key)
+    // 对象池：多Prefab，key=prefab名字
     private Dictionary<string, Stack<Transform>> poolMulti = new Dictionary<string, Stack<Transform>>();
-    
-    /// <summary>监听滚动事件</summary>
-    public UnityEvent<Vector2> OnScrollValueChanged;
 
-    // 委托：根据索引返回 UIListItemData
+    /// <summary>滚动位置变化事件</summary>
+    public UnityEvent<Vector2> OnScrollValueChanged;
+    // 索引数据委托
     public Func<int, UIListItemData> SetIndexData;
 
     #region LoopScrollPrefabSource 实现
 
     public GameObject GetObject(int index)
     {
+        GameObject go;
+        UIListItem listItem;
+
         if (!isUseMultiPrefabs)
         {
-            // 单Prefab模式：先从对象池中取
+            // 单Prefab模式
             if (poolSingle.Count == 0)
             {
-                Transform candidate = Instantiate(singlePrefab).transform;
-                return candidate.gameObject;
+                go = Instantiate(singlePrefab);
             }
             else
             {
-                Transform candidate = poolSingle.Pop();
-                candidate.gameObject.SetActive(true);
-                return candidate.gameObject;
+                var tr = poolSingle.Pop();
+                go = tr.gameObject;
+                go.SetActive(true);
             }
+            listItem = go.GetComponent<UIListItem>();
         }
         else
         {
-            UIListItemData data = SetIndexData?.Invoke(index);
-            //给定约束,预制体的名字和Data的名字相同,比如我的数据叫做Test_UIListItemData 那么我的视图脚本就叫做Test_UIListItem
-            string prefabname = data?.GetType().Name.Replace("Data", "");
-            GameObject prefab = multiPrefabs.Find(x => x.GetType().Name == prefabname).gameObject;
-            if (!poolMulti.TryGetValue(prefab.name, out Stack<Transform> stack))
+            // 多Prefab模式
+            var data = SetIndexData?.Invoke(index);
+            string prefabName = data?.GetType().Name.Replace("Data", "");
+            var prefab = multiPrefabs.Find(p => p.GetType().Name == prefabName).gameObject;
+
+            if (!poolMulti.TryGetValue(prefab.name, out var stack))
             {
                 stack = new Stack<Transform>();
                 poolMulti[prefab.name] = stack;
             }
+
             if (stack.Count == 0)
             {
-                Transform candidate = Instantiate(prefab).transform;
-                candidate.name = prefab.name;
-                return candidate.gameObject;
+                go = Instantiate(prefab);
+                go.name = prefab.name;
             }
             else
             {
-                Transform candidate = stack.Pop();
-                candidate.gameObject.SetActive(true);
-                return candidate.gameObject;
+                var tr = stack.Pop();
+                go = tr.gameObject;
+                go.SetActive(true);
             }
+            listItem = go.GetComponent<UIListItem>();
         }
+
+        if (listItem != null)
+        {
+            // 生命周期：初始化
+            listItem.AddInit();
+            listItem.init?.Invoke();
+
+            // 生命周期：准备显示
+            listItem.AddOnShow();
+        }
+
+        return go;
     }
 
     public void ReturnObject(Transform trans)
     {
+        var listItem = trans.GetComponent<UIListItem>();
+        if (listItem != null)
+        {
+            // 生命周期：隐藏前
+            listItem.onHide?.Invoke();
+            listItem.ResetShowState();
+        }
         trans.gameObject.SetActive(false);
         trans.SetParent(this.transform, false);
+
         if (!isUseMultiPrefabs)
         {
             poolSingle.Push(trans);
         }
         else
         {
-            string prefabName = trans.name;
-            if (!poolMulti.TryGetValue(prefabName, out Stack<Transform> stack))
+            if (!poolMulti.TryGetValue(trans.name, out var stack))
             {
                 stack = new Stack<Transform>();
-                poolMulti[prefabName] = stack;
+                poolMulti[trans.name] = stack;
             }
             stack.Push(trans);
         }
@@ -101,18 +123,28 @@ public class UIListMulti : MonoBehaviour, LoopScrollPrefabSource, LoopScrollMult
     public void ProvideData(Transform t, int idx)
     {
         var listItem = t.GetComponent<UIListItem>();
-        if (listItem != null)
+        if (listItem == null)
         {
-            if (listItem.showData == null)
-            {
-                listItem.AddShowData();
-            }
-            UIListItemData data = SetIndexData?.Invoke(idx);
+            Debug.LogError($"[UIListMulti] 找不到 UIListItem，idx={idx}");
+            return;
+        }
+        
+        // 生命周期：再次进入显示阶段
+        listItem.AddOnShow();
+        // 生命周期：准备展示数据
+        listItem.AddShowData();
+        // 生命周期：准备隐藏
+        listItem.AddOnHide();
+
+        var data = SetIndexData?.Invoke(idx);
+        if (data != null)
+        {
+            listItem.TryInvokeOnShow();
             listItem.showData.Invoke(data);
         }
         else
         {
-            Debug.LogError($"[UIListMulti] 找不到 UIListItem 脚本，idx = {idx}");
+            Debug.LogError($"[UIListMulti] 数据为空，idx={idx}");
         }
     }
 
@@ -120,12 +152,8 @@ public class UIListMulti : MonoBehaviour, LoopScrollPrefabSource, LoopScrollMult
 
     #region 对外接口
 
-    /// <summary>
-    /// 外部调用此接口设置总数量并生成列表
-    /// </summary>
-    public void SetCount(int newCount, bool refill = true)
+    public void SetCount(int newCount)
     {
-        // 在第一次调用 SetCount 时初始化 LoopScrollRectMulti
         if (loopScrollRect == null)
         {
             loopScrollRect = GetComponent<LoopScrollRectMulti>();
@@ -135,31 +163,29 @@ public class UIListMulti : MonoBehaviour, LoopScrollPrefabSource, LoopScrollMult
         loopScrollRect.prefabSource = this;
         loopScrollRect.dataSource = this;
         loopScrollRect.totalCount = newCount;
-        if (refill)
-        {
-            loopScrollRect.RefillCells();
-        }
-    }
-
-    public void RefreshCells()
-    {
-        loopScrollRect.RefreshCells();
-    }
-
-    public void RefillCells()
-    {
         loopScrollRect.RefillCells();
     }
 
+    public void UpdateContent() => loopScrollRect.RefreshCells();
+
     public void ScrollToCellWithinTime(int index, float time = 0.5f)
-    {
-        loopScrollRect.ScrollToCellWithinTime(index, time);
-    }
+        => loopScrollRect.ScrollToCellWithinTime(index, time);
+
+    public async UniTask ScrollToCellWithinTimeAsync(int index, float time = 0.5f, CancellationToken cts = default)
+        => await loopScrollRect.ScrollToCellWithinTimeAsync(index, time, cts);
 
     #endregion
 
-    private void HandleScrollValueChanged(Vector2 position)
+    #region 生命周期管理
+
+    private void OnDestroy()
     {
-        OnScrollValueChanged?.Invoke(position);
+        if (loopScrollRect != null)
+            loopScrollRect.onValueChanged.RemoveAllListeners();
     }
+
+    private void HandleScrollValueChanged(Vector2 pos)
+        => OnScrollValueChanged?.Invoke(pos);
+
+    #endregion
 }

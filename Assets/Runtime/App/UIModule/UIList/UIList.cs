@@ -1,6 +1,9 @@
 using System;
 using UnityEngine;
 using System.Collections.Generic;
+using System.Threading;
+using Cysharp.Threading.Tasks;
+using MIKUFramework.IOC;
 using UnityEngine.Events;
 using UnityEngine.UI;
 
@@ -12,64 +15,73 @@ public abstract class UIListItemData
 public abstract class UIListItem : MonoBehaviour
 {
     public Action<UIListItemData> showData { get; private set; }
+    public Action onShow { get; private set; }
+    public Action onHide { get; private set; }
+    public Action init { get; private set; }
+    
+    private bool hasShown = false;
+
+    public virtual void AddInit()
+    {
+        init ??= Init;
+    }
+
+    public void ResetShowState()
+    {
+        hasShown = false;
+    }
+
+    public void TryInvokeOnShow()
+    {
+        if (!hasShown)
+        {
+            onShow?.Invoke();
+            hasShown = true;
+        }
+    }
 
     public virtual void AddShowData()
     {
         showData ??= ShowData;
     }
 
+    public virtual void AddOnShow()
+    {
+        onShow ??= OnShow;
+    }
+
+    public virtual void AddOnHide()
+    {
+        onHide ??= OnHide;
+    }
+
+    //Init => OnShow => ShowData=> OnHide
+    private bool isInjected = false;
+    protected virtual void Init()
+    {
+        if (isInjected) return;
+        IoCHelper.Instance.Inject(this);
+        isInjected = true;
+    }
+    protected virtual void OnShow() { }
     protected abstract void ShowData(UIListItemData baseData);
+    protected virtual void OnHide() { }
 }
 
 [RequireComponent(typeof(UnityEngine.UI.LoopScrollRect))]
 [DisallowMultipleComponent]
 public class UIList : MonoBehaviour, LoopScrollPrefabSource, LoopScrollDataSource
 {
-    /// <summary>监听滚动事件</summary>
-    public UnityEvent<Vector2> OnScrollValueChanged;
-
-    public Func<int, UIListItemData> SetIndexData;
     [SerializeField] GameObject item;
-    
+
     Stack<Transform> pool = new Stack<Transform>();
     private LoopScrollRect ls;
 
-    public GameObject GetObject(int index)
-    {
-        if (pool.Count == 0)
-        {
-            return Instantiate(item);
-        }
-        Transform candidate = pool.Pop();
-        candidate.gameObject.SetActive(true);
-        return candidate.gameObject;
-    }
-    
-    public void ReturnObject(Transform trans)
-    {
-        //trans.SendMessage("ScrollCellReturn", SendMessageOptions.DontRequireReceiver);
-        trans.gameObject.SetActive(false);
-        trans.SetParent(transform, false);
-        pool.Push(trans);
-    }
+    #region 业务调用
 
-    public void ProvideData(Transform transform, int idx)
-    {
-        var item = transform.GetComponent<UIListItem>();
-        if (item != null)
-        {
-            if (item.showData == null)
-            {
-                item.AddShowData();
-            }
-            item.showData.Invoke(SetIndexData?.Invoke(idx));
-        }
-        else
-        {
-            GameLogger.LogError($"[UIList]找不到UIListItem！！！idx={idx}");
-        }
-        //transform.SendMessage("ScrollCellIndex", ItemDatas[idx]);
-    }
+    public UnityEvent<Vector2> OnScrollValueChanged;
+
+    public Func<int, UIListItemData> SetIndexData;
 
     public void SetCount(int count)
     {
@@ -84,7 +96,7 @@ public class UIList : MonoBehaviour, LoopScrollPrefabSource, LoopScrollDataSourc
         ls.totalCount = count;
         ls.RefillCells();
     }
-    
+
     public void UpdateContent()
     {
         ls.RefreshCells();
@@ -94,25 +106,96 @@ public class UIList : MonoBehaviour, LoopScrollPrefabSource, LoopScrollDataSourc
     {
         ls.ScrollToCellWithinTime(index, time);
     }
-    
+
+    public async UniTask ScrollToCellWithinTimeAsync(int index, float time = 0.5f, CancellationToken cts = default)
+    {
+        await ls.ScrollToCellWithinTimeAsync(index, time, cts);
+    }
+
     public Vector3 GetItemWorldPosition(int index)
     {
-        // 获取内容区域中的 RectTransform
         RectTransform contentRect = ls.content;
-
-        // 获取目标项的 RectTransform（假设每个项的父物体是 content）
         RectTransform targetItem = contentRect.GetChild(index).GetComponent<RectTransform>();
-
-        // 获取该项的世界坐标
-        Vector3 worldPosition = targetItem.position;
-
-        return worldPosition;
+        return targetItem.position;
     }
-    
+
+    #endregion
+
+    #region 组件接口
+
+    public GameObject GetObject(int index)
+    {
+        UIListItem listItem;
+        if (pool.Count == 0)
+        {
+            var instance = Instantiate(item);
+            listItem = instance.GetComponent<UIListItem>();
+        }
+        else
+        {
+            var pooledTransform = pool.Pop();
+            pooledTransform.gameObject.SetActive(true);
+            listItem = pooledTransform.GetComponent<UIListItem>();
+        }
+
+        if (listItem != null)
+        {
+            listItem.AddInit();
+            listItem.init?.Invoke();
+            listItem.AddOnShow();
+            //listItem.onShow?.Invoke();
+        }
+
+        return listItem.gameObject;
+    }
+
+    public void ReturnObject(Transform trans)
+    {
+        var listItem = trans.GetComponent<UIListItem>();
+        if (listItem != null)
+        {
+            listItem.onHide?.Invoke();
+            listItem.ResetShowState();
+        }
+
+        trans.gameObject.SetActive(false);
+        trans.SetParent(transform, false);
+        pool.Push(trans);
+    }
+
+    public void ProvideData(Transform transform, int idx)
+    {
+        var listItem = transform.GetComponent<UIListItem>();
+        if (listItem != null)
+        {
+            listItem.AddOnShow();
+            listItem.AddShowData();
+            listItem.AddOnHide();
+
+
+            var itemData = SetIndexData?.Invoke(idx);
+            if (itemData != null)
+            {
+                listItem.showData.Invoke(itemData);
+                listItem.TryInvokeOnShow();
+            }
+            else
+            {
+                GameLogger.LogError($"[UIList] 提供的数据为空 idx={idx}");
+            }
+        }
+        else
+        {
+            GameLogger.LogError($"[UIList]找不到UIListItem！！！idx={idx}");
+        }
+    }
+
+    #endregion
+
     #region 生命周期
+
     private void OnDestroy()
     {
-        // 移除事件监听
         if (ls != null)
         {
             ls.onValueChanged.RemoveAllListeners();
@@ -123,5 +206,6 @@ public class UIList : MonoBehaviour, LoopScrollPrefabSource, LoopScrollDataSourc
     {
         OnScrollValueChanged?.Invoke(position);
     }
+
     #endregion
 }
