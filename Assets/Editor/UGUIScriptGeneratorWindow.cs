@@ -129,6 +129,7 @@ public class UGUIScriptGenerator : EditorWindow
     // GUI 绘制
     private void OnGUI()
     {
+        bool hasDuplicate = false;
         // 记录需要删除的元素
         List<int> elementsToRemove = new List<int>();
 
@@ -141,24 +142,14 @@ public class UGUIScriptGenerator : EditorWindow
 
             if (newUiObject != uiElements[i].uiObject) // 如果 UI 元素发生变化
             {
-                // 检查是否已经存在该 UI 元素,并且不是重复类型
-                if (uiElements.Any(e => e.uiObject == newUiObject && e.selectedComponentType == GetDefaultComponentType(newUiObject)))
-                {
-                    Debug.LogWarning($"UI element {newUiObject.name} already exists in the list, skipping.");
-                    element.uiObject = null; // 置为空
-                }
-                else
-                {
-                    // 如果没有重复，则进行赋值
-                    element.uiObject = newUiObject;
+                element.uiObject = newUiObject;
 
-                    // 仅当 UI 元素不为空时才进行一致性检查
-                    if (element.uiObject != null)
-                    {
-                        element.selectedComponentType = GetDefaultComponentType(element.uiObject);
-                        element.fieldName = Regex.Replace(newUiObject.name, @"\s", "") + "_" + element.selectedComponentType;
-                        CheckRootNodeConsistency(); // 自动检查一致性
-                    }
+                // 仅当 UI 元素不为空时才进行一致性检查
+                if (element.uiObject != null)
+                {
+                    element.selectedComponentType = GetDefaultComponentType(element.uiObject);
+                    element.fieldName = Regex.Replace(newUiObject.name, @"\s", "") + "_" + element.selectedComponentType;
+                    CheckRootNodeConsistency(); // 自动检查一致性
                 }
             }
             
@@ -175,7 +166,12 @@ public class UGUIScriptGenerator : EditorWindow
                     //检测新类型是否已经存在
                     if (uiElements.Any(e => e.uiObject == element.uiObject && e.selectedComponentType == availableTypes[newIndex]))
                     {
-                        Debug.LogWarning($"UI element {element.uiObject.name} with type {availableTypes[newIndex]} already exists in the list, skipping.");
+                        // 弹出一个模态对话框提醒
+                        EditorUtility.DisplayDialog(
+                            "重复的 UI 元素",
+                            $"物体 “{element.uiObject.name}” 的类型 “{availableTypes[newIndex]}” 已经存在！",
+                            "确定"
+                        );
                     }
                     else
                     {
@@ -188,6 +184,15 @@ public class UGUIScriptGenerator : EditorWindow
             if (GUILayout.Button("移除", GUILayout.Width(60)))
             {
                 elementsToRemove.Add(i); // 记录删除的元素索引
+            }
+            
+            //如果重复,绘制错误提示
+            if (IsDuplicate(element))
+            {
+                EditorGUILayout.HelpBox(
+                    $"!! 物体“{element.uiObject.name}”的类型“{element.selectedComponentType}”重复",
+                    MessageType.Error);
+                hasDuplicate = true;
             }
             GUILayout.EndHorizontal();
         }
@@ -223,7 +228,7 @@ public class UGUIScriptGenerator : EditorWindow
         }
 
         // 生成脚本的按钮，只有在根节点一致性检查通过后才可点击
-        GUI.enabled = isRootNodeChecked;  // 如果根节点一致性检查未通过，生成按钮不可点击
+        GUI.enabled = isRootNodeChecked && !hasDuplicate;  // 如果根节点一致性检查未通过，生成按钮不可点击
         if (GUILayout.Button("生成脚本(如果没有生成或挂载成功就再按一次)"))
         {
             GenerateScript();
@@ -582,6 +587,16 @@ public class UGUIScriptGenerator : EditorWindow
         }
         return false;
     }
+    
+    //判断是否有重复
+    private bool IsDuplicate(UIElement element)
+    {
+        if (element.uiObject == null) return false;
+        return uiElements.Count(e =>
+            e.uiObject == element.uiObject &&
+            e.selectedComponentType == element.selectedComponentType
+        ) > 1;
+    }
 
     // 查找给定 UI 元素的根节点
     private GameObject FindRootNode(GameObject uiElement)
@@ -674,16 +689,9 @@ public class UGUIScriptGenerator : EditorWindow
                     {
                         if (obj is GameObject go)
                         {
-                            if (uiElements.Any(e => e.uiObject == go && e.selectedComponentType == GetDefaultComponentType(go)))
-                            {
-                                Debug.LogWarning($"UI element {go.name} already exists in the list, skipping.");
-                            }
-                            else
-                            {
-                                var element = new UIElement(go.name, go);
-                                element.selectedComponentType = GetDefaultComponentType(element.uiObject);
-                                uiElements.Add(element);
-                            }
+                            var element = new UIElement(go.name, go);
+                            element.selectedComponentType = GetDefaultComponentType(element.uiObject);
+                            uiElements.Add(element);
                         }
                     }
                     CheckRootNodeConsistency();
