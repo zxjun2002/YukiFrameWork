@@ -102,7 +102,7 @@ public class UGUIScriptGenerator : EditorWindow
                     {
                         var element = new UIElement(field.Name, component.gameObject)
                         {
-                            selectedComponentType = component.GetType().Name
+                            selectedComponentType = field.FieldType.Name
                         };
                         // 将已赋值的 UI 元素添加到 uiElements 列表
                         window.uiElements.Add(element); 
