@@ -7,6 +7,11 @@ public class ConfigTable: IConfigTable
 {
     private ConfData confs;
     private Dictionary<Type, Lazy<IRacastSet>> racastSets;
+    //需要提前预热的表
+    private readonly Type[] EagerLoadTypes = new[]
+    {
+        typeof(ItemRacastSet)
+    };
 
     public void Init(string url)
     {
@@ -17,7 +22,15 @@ public class ConfigTable: IConfigTable
             { typeof(ItemRacastSet),     new Lazy<IRacastSet>(() => new ItemRacastSet(confs)) },
             { typeof(BuffCtRacastSet),   new Lazy<IRacastSet>(() => new BuffCtRacastSet(confs)) },
             { typeof(EffectCtRacastSet), new Lazy<IRacastSet>(() => new EffectCtRacastSet(confs)) },
-        };        
+        };
+        
+        //预热表,提前初始化
+        foreach (var t in EagerLoadTypes)
+        {
+            if (racastSets.TryGetValue(t, out var lazy))
+                _ = lazy.Value; // 立刻 new
+        }
+        
         GameLogger.Log("配置表初始化成功！！！");
     }
 
