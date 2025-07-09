@@ -3,9 +3,11 @@ using System.Globalization;
 using UnityEngine;
 using System.IO;
 using System.Linq;
+using System.Text;
 using CsvHelper;
 using CsvHelper.Configuration;
-using ExcelDataReader; // 引入用于处理 Excel 文件的库
+using ExcelDataReader;
+using UnityEditor; // 引入用于处理 Excel 文件的库
 
 namespace ReadConf
 {
@@ -28,7 +30,11 @@ namespace ReadConf
             {
                 classes = new List<ClassContent>()
             };
+            
+            //按所属文件夹分组
+            var folderClasses = new Dictionary<string, List<(string className, string classFieldName)>>();
 
+            #region 解析csv
             foreach (string file in csvFiles)
             {
                 Debug.Log("[配置表][Editor] " + file);
@@ -91,21 +97,16 @@ namespace ReadConf
                 string classFieldName = char.ToLower(className[0]) + className[1..];
                 fieldStr += $"    public {className}[] {classFieldName};\n";
                 defStr += classDef;
-
-                // 生成 XXXRacastSet 结构体文件
-                string racastSetClass = "using System.Collections.Generic;\nusing System.Linq;\n"
-                                        + $"public struct {className}RacastSet : IRacastSet\n"
-                                        + "{\n"
-                                        + $"    public Dictionary<int, {className}> dic;\n\n"
-                                        + $"    public {className}RacastSet(ConfData data)\n"
-                                        + "    {\n"
-                                        + $"        dic = data.{classFieldName}.ToDictionary(es => es.id);\n"
-                                        + "    }\n"
-                                        + "}\n\n";
-
-                string racastSetFilePath = Path.Combine(Application.dataPath + ResEditorConfig.Racast_Path, $"{className}RacastSet.cs");
-                File.WriteAllText(racastSetFilePath, racastSetClass);
-
+                
+                // 收集到 folderClasses
+                string folderName = Path.GetFileName(Path.GetDirectoryName(file));
+                if (!folderClasses.TryGetValue(folderName, out var list))
+                {
+                    list = new List<(string, string)>();
+                    folderClasses[folderName] = list;
+                }
+                list.Add((className, classFieldName));
+                
                 result.classes.Add(new ClassContent
                 {
                     className = className,
@@ -115,7 +116,9 @@ namespace ReadConf
                     props = props,
                 });
             }
+            #endregion
 
+            #region 解析Excel格式
             foreach (string file in excelFiles.Concat(xlsFiles))
             {
                 Debug.Log("[配置表][Editor] " + file);
@@ -180,19 +183,14 @@ namespace ReadConf
                         fieldStr += $"    public {className}[] {classFieldName};\n";
                         defStr += classDef;
 
-                        // 生成 XXXRacastSet 结构体文件
-                        string racastSetClass = "using System.Collections.Generic;\nusing System.Linq;\n"
-                                                + $"public struct {className}RacastSet : IRacastSet\n"
-                                                + "{\n"
-                                                + $"    public Dictionary<int, {className}> dic;\n\n"
-                                                + $"    public {className}RacastSet(ConfData data)\n"
-                                                + "    {\n"
-                                                + $"        dic = data.{classFieldName}.ToDictionary(es => es.id);\n"
-                                                + "    }\n"
-                                                + "}\n\n";
-
-                        string racastSetFilePath = Path.Combine(Application.dataPath + ResEditorConfig.Racast_Path, $"{className}RacastSet.cs");
-                        File.WriteAllText(racastSetFilePath, racastSetClass);
+                        // 收集到 folderClasses
+                        string folderName = Path.GetFileName(Path.GetDirectoryName(file));
+                        if (!folderClasses.TryGetValue(folderName, out var list))
+                        {
+                            list = new List<(string, string)>();
+                            folderClasses[folderName] = list;
+                        }
+                        list.Add((className, classFieldName));
 
                         result.classes.Add(new ClassContent
                         {
@@ -205,6 +203,7 @@ namespace ReadConf
                     } while (reader.NextResult()); // 切换到下一个子表
                 }
             }
+            #endregion
 
             codeStr = tip + codeStr;
             codeStr += (fieldStr + "}\n\n" + defStr);
@@ -212,7 +211,16 @@ namespace ReadConf
             Debug.Log(codeStr);
 
             File.WriteAllText(Application.dataPath + ResEditorConfig.ConfData_Path, codeStr, System.Text.Encoding.UTF8);
-
+            
+            //生成racastSet
+            DoGenRacastSet(folderClasses);
+            
+            EditorUtility.DisplayDialog(
+                "配置表生成",
+                "所有配置表及 RacastSet 已生成完成！",
+                "确定"
+            );
+                
             return result;
         }
 
@@ -230,6 +238,46 @@ namespace ReadConf
                 "List<int>" => "List<int>",
                 _ => "string",
             };
+        }
+
+        private static void DoGenRacastSet(Dictionary<string, List<(string className, string classFieldName)>> folderClasses)
+        {
+            foreach (var kv in folderClasses)
+            {
+                string folderName  = kv.Key;               // 目录名，如 "Enemy"
+                var  classes       = kv.Value;             // List<(className, classFieldName)>
+                string structName  = $"{folderName}RacastSet";
+
+                var sb = new StringBuilder();
+                sb.AppendLine("using System.Collections.Generic;");
+                sb.AppendLine("using System.Linq;");
+                sb.AppendLine();
+                sb.AppendLine($"public struct {structName} : IRacastSet");
+                sb.AppendLine("{");
+                // 5.1 属性：public Dictionary<int,T> TtCt { get; private set; }
+                foreach (var (className, _) in classes)
+                {
+                    sb.AppendLine($"    public Dictionary<int, {className}> {className}Ct {{ get; private set; }}");
+                }
+                sb.AppendLine();
+                // 5.2 构造函数：从 ConfData 一次性初始化所有字典
+                sb.AppendLine($"    public {structName}(ConfData data)");
+                sb.AppendLine("    {");
+                foreach (var (className, classFieldName) in classes)
+                {
+                    sb.AppendLine($"        {className}Ct = data.{classFieldName}.ToDictionary(es => es.id);");
+                }
+                sb.AppendLine("    }");
+                sb.AppendLine("}");
+
+                // 5.3 写入到文件
+                string outPath = Path.Combine(
+                    Application.dataPath + ResEditorConfig.Racast_Path,
+                    $"{structName}.cs"
+                );
+                File.WriteAllText(outPath, sb.ToString());
+                Debug.Log($"[配置表][Editor] 生成 {structName}.cs 完成");
+            }
         }
     }
 

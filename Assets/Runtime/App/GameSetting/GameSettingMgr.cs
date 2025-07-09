@@ -44,11 +44,11 @@ public class GameSettingMgr : InjectableMonoBehaviour
         redPointRepository.Init();
         httpAppService.Init();
         httpModule.Init(HttpConfig.GameUrl);
-        petRepository.Aggs[1].PetInfo_E.SetNickname(configTable.GetConfig<ItemRacastSet>().dic[1001].itemTestList[0].ToString());
-        GameLogger.LogCyan(configTable.GetConfig<ItemRacastSet>().dic[1001].itemTestList[0].ToString());
-        GameLogger.LogGreen(configTable.GetConfig<EffectCtRacastSet>().dic[102].effectVal);
+        petRepository.Aggs[1].PetInfo_E.SetNickname(configTable.GetConfig<ItemRacastSet>().ItemCt[1001].itemTestList[0].ToString());
+        GameLogger.LogCyan(configTable.GetConfig<ItemRacastSet>().ItemCt[1001].itemTestList[0].ToString());
+        GameLogger.LogGreen(configTable.GetConfig<BuffRacastSet>().EffectCtCt[102].effectVal);
         await UniTask.DelayFrame(500);
-        eventCenter.EventTrigger(new StringEventData(CustomEventType.TestEventWithParam,configTable.GetConfig<BuffCtRacastSet>().dic[102].buffName));
+        eventCenter.EventTrigger(new StringEventData(CustomEventType.TestEventWithParam,configTable.GetConfig<BuffRacastSet>().BuffCtCt[102].buffName));
         eventCenter.EventTrigger(CustomEventType.TestEventWithoutParam);
         uiManager.Init(uiCamera);
         uiManager.OpenPanel<AUIPanel>();

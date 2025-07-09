@@ -8,6 +8,7 @@ using System.Collections.Generic;
 [MemoryPackable]
 public partial class ConfData{
     public Item[] item;
+    public TestItem[] testItem;
     public BuffCt[] buffCt;
     public EffectCt[] effectCt;
 }
@@ -20,6 +21,12 @@ public partial class Item {
     public string itemJson;
     public int[] itemList;
     public List<int> itemTestList;
+}
+
+[MemoryPackable]
+public partial class TestItem {
+    public int id;
+    public string itemDes;
 }
 
 [MemoryPackable]

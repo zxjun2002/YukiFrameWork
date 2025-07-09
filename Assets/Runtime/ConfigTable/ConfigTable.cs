@@ -8,9 +8,9 @@ public class ConfigTable: IConfigTable
     private ConfData confs;
     private Dictionary<Type, Lazy<IRacastSet>> racastSets;
     //需要提前预热的表
-    private readonly Type[] EagerLoadTypes = new[]
+    private readonly Type[] EagerLoadTypes = new Type[]
     {
-        typeof(ItemRacastSet)
+        
     };
 
     public void Init(string url)
@@ -20,8 +20,7 @@ public class ConfigTable: IConfigTable
         racastSets = new Dictionary<Type, Lazy<IRacastSet>>
         {
             { typeof(ItemRacastSet),     new Lazy<IRacastSet>(() => new ItemRacastSet(confs)) },
-            { typeof(BuffCtRacastSet),   new Lazy<IRacastSet>(() => new BuffCtRacastSet(confs)) },
-            { typeof(EffectCtRacastSet), new Lazy<IRacastSet>(() => new EffectCtRacastSet(confs)) },
+            { typeof(BuffRacastSet),   new Lazy<IRacastSet>(() => new BuffRacastSet(confs)) },
         };
         
         //预热表,提前初始化
