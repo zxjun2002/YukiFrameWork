@@ -51,6 +51,19 @@
             },
             "createdTimeStamp": 1752743951384,
             "modifiedTimeStamp": 1752743951384
+        },
+        {
+            "guid": "919c356bae6a5e84bb8bfe460c9610a1",
+            "title": "事件总线",
+            "comment": "",
+            "titleColor": {
+                "r": 0.9847497940063477,
+                "g": 0.0,
+                "b": 1.0,
+                "a": 1.0
+            },
+            "createdTimeStamp": 1752744397662,
+            "modifiedTimeStamp": 1752744397662
         }
     ]
 }
