@@ -1,0 +1,56 @@
+{
+    "comments": [
+        {
+            "guid": "41254d44260bf4943addc025739d7c96",
+            "title": "UI存放文件夹",
+            "comment": "",
+            "titleColor": {
+                "r": 0.4000000059604645,
+                "g": 0.800000011920929,
+                "b": 1.0,
+                "a": 1.0
+            },
+            "createdTimeStamp": 1752742580439,
+            "modifiedTimeStamp": 1752742580439
+        },
+        {
+            "guid": "a75c9bd606a31694e9abce2f4ca00b1a",
+            "title": "列表项UI",
+            "comment": "",
+            "titleColor": {
+                "r": 0.8845068216323853,
+                "g": 1.0,
+                "b": 0.0,
+                "a": 1.0
+            },
+            "createdTimeStamp": 1752743250218,
+            "modifiedTimeStamp": 1752743276915
+        },
+        {
+            "guid": "09ffd1f168a64944789762b851ac8347",
+            "title": "老列表项UI",
+            "comment": "",
+            "titleColor": {
+                "r": 1.0,
+                "g": 0.09860484302043915,
+                "b": 0.0,
+                "a": 1.0
+            },
+            "createdTimeStamp": 1752743311321,
+            "modifiedTimeStamp": 1752743311321
+        },
+        {
+            "guid": "23bce2e71c452964e92ea922d7e7ba57",
+            "title": "运行时文件夹",
+            "comment": "",
+            "titleColor": {
+                "r": 1.0,
+                "g": 0.18753722310066224,
+                "b": 0.0,
+                "a": 1.0
+            },
+            "createdTimeStamp": 1752743951384,
+            "modifiedTimeStamp": 1752743951384
+        }
+    ]
+}
