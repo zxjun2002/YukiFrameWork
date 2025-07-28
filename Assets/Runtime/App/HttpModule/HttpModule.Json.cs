@@ -1,75 +1,60 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Text;
-using Cysharp.Threading.Tasks;
-using UnityEngine.Networking;
 using System.Threading;
-using System.Linq;
+using Cysharp.Threading.Tasks;
 using Newtonsoft.Json;
+using UnityEngine;
+using UnityEngine.Networking;
+using Yuki;
 
-namespace Yuki
+namespace MCRogue
 {
-    public partial class HttpModule
+    public partial class HttpModule : IHttpModule
     {
-        bool isRequestInProgress = false; // 请求进行中的标志
-        string Req_Color = "#F3D600"; //同步
-        string AsyncReq_Color = "#988710";
-        string Rsp_Color = "#F47800";
-        string AsyncRsp_Color = "#7D3E00";
+        // 并发控制标志
+        private bool isRequestInProgress = false;
         public bool GetisRequestInProgress() => isRequestInProgress;
 
+        // 服务器时间同步
+        private long _baseServerTimeAt;
+        private readonly Stopwatch _serverTimeTimer = new Stopwatch();
+        public long GetServerTimeAt() => _baseServerTimeAt + _serverTimeTimer.ElapsedMilliseconds;
+
+        // PUT 请求（带重试）
         public async UniTask<T> Request_Put<T>(int gameReqType, string json) where T : List<GameBase_Rsp>
         {
-            var game_url = Url;
+            var requestUrl = $"{Url}/game";
             if (isRequestInProgress)
             {
                 GameLogger.LogWarning("[Net][Rsp]: 上一个请求尚未完成，请稍后再试。");
                 return default;
             }
-
             isRequestInProgress = true;
             try
             {
-                Dictionary<string, string> Game_Headers = new Dictionary<string, string>();
-                Game_Headers.Add("Game-Api-Id", gameReqType.ToString());
-                Func<UnityWebRequest> createWebRequest = () =>
-                {
-                    var webRequest = new UnityWebRequest(game_url, HTTPVerbs.Put.ToString());
-                    webRequest.uploadHandler = new UploadHandlerRaw(Encoding.UTF8.GetBytes(json));
-                    webRequest.downloadHandler = new DownloadHandlerBuffer();
-                    foreach (var header in Game_Headers)
-                    {
-                        webRequest.SetRequestHeader(header.Key, header.Value);
-                    }
-
-                    return webRequest;
-                };
-
-                GameLogger.LogWithColor(
-                    $"[Net][Req][Put]: {gameReqType} => 【Url】: {game_url}, 【Json】: {json}, 【Headers】:{string.Join(", ", Game_Headers.Select(kv => $"[{kv.Key}: {kv.Value}]"))}",
-                    AsyncReq_Color);
-                return await RequestSendWithRetry<T>(createWebRequest);
+                var headers = CreateGameHeaders(gameReqType);
+                GameLogger.LogWithColor($"[Net][Req][Put]: {gameReqType} => Url:{requestUrl}, Json:{json}", "#ff0000");
+                return await RequestSendWithRetry<T>(() => CreateRequest(requestUrl, HTTPVerbs.Put, json, headers), json);
             }
             finally
             {
-                isRequestInProgress = false; // 请求完成后重置标志
+                isRequestInProgress = false;
             }
         }
 
+        // PUT 请求（无重试）
         public async UniTask<T> Request_Put_Async<T>(int gameReqType, string json) where T : List<GameBase_Rsp>
         {
-            var game_url = Url;
-            Dictionary<string, string> Game_Headers = new Dictionary<string, string>();
-            Game_Headers.Add("Game-Api-Id", gameReqType.ToString());
-            using (var webRequest = new UnityWebRequest(game_url, HTTPVerbs.Put.ToString()))
-            {
-                GameLogger.LogWithColor(
-                    $"[Net][Req][Get]: =>【Url】:{game_url},【Json】:{json},【Headers】:{string.Join(", ", Game_Headers.Select(kv => $"[{kv.Key}: {kv.Value}]"))}",
-                    Req_Color);
-                return await Async_RequestSend<T>(webRequest, json, Game_Headers);
-            }
+            var requestUrl = $"{Url}/game";
+            var headers = CreateGameHeaders(gameReqType);
+            using var request = CreateRequest(requestUrl, HTTPVerbs.Put, json, headers);
+            GameLogger.LogWithColor($"[Net][Req][Put Async]: Url:{requestUrl}, Json:{json}", "#ff0000");
+            return await Async_RequestSend<T>(request, json, headers);
         }
 
+        // POST 请求（带重试）
         public async UniTask<T> Request_Post<T>(string path, string json, Dictionary<string, string> headers = null)
         {
             if (isRequestInProgress)
@@ -77,209 +62,192 @@ namespace Yuki
                 GameLogger.LogWarning("[Net][Rsp]: 上一个请求尚未完成，请稍后再试。");
                 return default;
             }
-
             isRequestInProgress = true;
             try
             {
-                Func<UnityWebRequest> createWebRequest = () =>
-                {
-                    var webRequest = new UnityWebRequest($"{Url}{path}", HTTPVerbs.Post.ToString());
-                    webRequest.uploadHandler = new UploadHandlerRaw(Encoding.UTF8.GetBytes(json));
-                    webRequest.downloadHandler = new DownloadHandlerBuffer();
-
-                    if (headers != null)
-                    {
-                        foreach (var header in headers)
-                        {
-                            webRequest.SetRequestHeader(header.Key, header.Value);
-                        }
-                    }
-
-                    return webRequest;
-                };
-
-                GameLogger.LogWithColor(
-                    $"[Net][Req][Post]: 【URL】: {Url}{path}, 【JSON】: {json}, 【Headers】:{string.Join(", ", headers.Select(kv => $"[{kv.Key}: {kv.Value}]"))}",
-                    Req_Color);
-                return await RequestSendWithRetry<T>(createWebRequest);
+                var requestUrl = $"{Url}{path}";
+                GameLogger.LogWithColor($"[Net][Req][Post]: Url:{requestUrl}, Json:{json}", "#ff0000");
+                return await RequestSendWithRetry<T>(() => CreateRequest(requestUrl, HTTPVerbs.Post, json, headers), json);
             }
             finally
             {
-                isRequestInProgress = false; // 请求完成后重置标志
+                isRequestInProgress = false;
             }
         }
 
-        public async UniTask<T> Request_Post_Async<T>(string path, string json,
-            Dictionary<string, string> headers = null)
+        // POST 请求（无重试）
+        public async UniTask<T> Request_Post_Async<T>(string path, string json, Dictionary<string, string> headers = null)
         {
-            using (var webRequest = new UnityWebRequest($"{Url}{path}", HTTPVerbs.Post.ToString()))
+            var requestUrl = $"{Url}{path}";
+            using var request = CreateRequest(requestUrl, HTTPVerbs.Post, json, headers);
+            GameLogger.LogWithColor($"[Net][Req][Post Async]: Url:{requestUrl}, Json:{json}", "#ff0000");
+            return await Async_RequestSend<T>(request, json, headers);
+        }
+
+        // 构建 UnityWebRequest
+        private UnityWebRequest CreateRequest(string url, HTTPVerbs verb, string json, Dictionary<string, string> headers)
+        {
+            var req = new UnityWebRequest(url, verb.ToString())
             {
-                GameLogger.LogWithColor($"[Net][Req][Get]: =>Url:{Url}{path},Json:{json}", Req_Color);
-                return await Async_RequestSend<T>(webRequest, json, headers);
-            }
-        }
-
-        private async UniTask<T> RequestSendWithRetry<T>(Func<UnityWebRequest> requestFactory,
-            int maxRetries = HttpConfig.DefaultMaxRetries, int delayMilliseconds = HttpConfig.DefaultRetryInterval,
-            int timeoutMilliseconds = HttpConfig.RequestTimeout)
-        {
-            for (int attempt = 1; attempt <= maxRetries; attempt++)
+                uploadHandler = new UploadHandlerRaw(Encoding.UTF8.GetBytes(json)),
+                downloadHandler = new DownloadHandlerBuffer()
+            };
+            req.SetRequestHeader("Content-Type", "application/json");
+            if (headers != null)
             {
-                UnityWebRequest webRequest = null;
-                try
-                {
-                    webRequest = requestFactory();
-
-                    // 调用带超时控制的请求发送逻辑
-                    var response = await RequestSend<T>(webRequest, timeoutMilliseconds);
-
-                    // 如果返回值是默认值，则认为请求失败，进行重试
-                    if (EqualityComparer<T>.Default.Equals(response, default))
-                    {
-                        GameLogger.LogWarning($"[Net][Retry][Attempt {attempt}]: 请求失败，等待重试...");
-                        await UniTask.Delay(delayMilliseconds); // 重试前等待
-                        continue; // 重试
-                    }
-
-                    return response;
-                }
-                catch (Exception ex)
-                {
-                    GameLogger.LogError($"[Net][Retry][Attempt {attempt}]: 出现意外错误 {ex.Message}");
-                    throw;
-                }
-                finally
-                {
-                    webRequest?.Dispose(); // 手动释放资源
-                }
-
+                foreach (var kv in headers)
+                    req.SetRequestHeader(kv.Key, kv.Value);
             }
-
-            // 最后一次重试失败后，触发登录弹窗
-            GameLogger.LogError("[Net]: 所有重试均失败，触发重新登录逻辑");
-
-            throw new Exception("[Net] 请求失败，所有重试均未成功");
+            return req;
         }
 
-        private async UniTask<T> RequestSend<T>(UnityWebRequest webRequest,
-            int timeoutMilliseconds = HttpConfig.RequestTimeout)
-        {
-            //IgnoreVerification_SSL(webRequest); // 忽略 SSL 验证（如果需要）
-
-            var operation = webRequest.SendWebRequest();
-            using (var cancellationTokenSource = new CancellationTokenSource(timeoutMilliseconds))
+        // 构建游戏业务请求头
+        private Dictionary<string, string> CreateGameHeaders(int gameReqType)
+            => new Dictionary<string, string>
             {
-                try
+                ["Service-Type"] = "game",
+                ["Content-Type"] = "application/json",
+                ["Game-Server-Id"] = "1141514",
+                ["Session-Id"] = "a",
+                ["Session-Token"] = "b",
+                ["Game-Api-Id"] = gameReqType.ToString()
+            };
+
+        // 带重试发送
+        private async UniTask<T> RequestSendWithRetry<T>(Func<UnityWebRequest> factory, string json,
+            int maxRetries = HttpConfig.DefaultMaxRetries,
+            int delayMs = HttpConfig.DefaultRetryInterval,
+            int timeoutMs = HttpConfig.RequestTimeout)
+        {
+            for (int i = 1; i <= maxRetries; i++)
+            {
+                using var req = factory();
+                var rsp = await RequestSend<T>(req, json, timeoutMs);
+                if (EqualityComparer<T>.Default.Equals(rsp, default))
                 {
-                    // 设置超时控制
-                    await operation.WithCancellation(cancellationTokenSource.Token);
-
-                    // 请求成功时解析并返回数据
-                    if (webRequest.result == UnityWebRequest.Result.Success)
-                    {
-                        GameLogger.LogWithColor($"[Net][Rsp]: {webRequest.downloadHandler.text}", Rsp_Color);
-                        return JsonConvert.DeserializeObject<T>(webRequest.downloadHandler.text);
-                    }
-
-                    GameLogger.LogError("[Net][Rsp]: 不应该在这里");
-                    throw new Exception(webRequest.error);
+                    GameLogger.LogWarning($"[Net][Retry][{i}]: 请求失败，重试中...");
+                    await UniTask.Delay(delayMs);
+                    continue;
                 }
-                catch (OperationCanceledException)
+                return rsp;
+            }
+            // 重试失败
+            GameLogger.LogError("[Net]: 重试失败，触发登录");
+            throw new Exception("[Net] 请求失败");
+        }
+
+        // 发送并处理响应
+        private async UniTask<T> RequestSend<T>(UnityWebRequest webRequest, string json, int timeoutMs)
+        {
+            var op = webRequest.SendWebRequest();
+            using var cts = new CancellationTokenSource(timeoutMs);
+            try
+            {
+                await op.WithCancellation(cts.Token);
+                if (webRequest.result == UnityWebRequest.Result.Success)
                 {
-                    GameLogger.LogError("[Net][Rsp]: 请求超时");
-                    return default;
+                    UpdateServerTime(webRequest);
+                    GameLogger.LogWithColor($"[Net][Rsp]: {webRequest.downloadHandler.text}", "#ff0000");
+                    return JsonConvert.DeserializeObject<T>(webRequest.downloadHandler.text);
                 }
-                catch (UnityWebRequestException ex)
-                {
-                    // 如果是踢出游戏的异常，不需要返回默认值，直接抛出即可
-                    // 请求失败时处理错误码
-                    var httpCode = (HttpCode)webRequest.responseCode;
-
-                    // 处理特定的业务错误，比如踢出游戏
-                    if (httpCode == HttpCode.kick)
-                    {
-                        throw new Exception(
-                            $"[Net][Rsp]: 用户被踢出游戏,RspText:{webRequest.downloadHandler.text}"); // 抛出异常，终止请求
-                    }
-
-                    if (httpCode == HttpCode.error)
-                    {
-                        GameLogger.LogError($"[Net][Rsp]: 请求失败,RspText:{webRequest.downloadHandler.text}");
-                        throw new Exception($"[Net][Rsp]: 请求失败"); // 抛出异常，终止请求
-                    }
-
-                    if (httpCode == HttpCode.update)
-                    {
-                        GameLogger.LogError($"[Net][Rsp]: 请求失败,RspText:{webRequest.downloadHandler.text}");
-                        throw new Exception($"[Net][Rsp]: 请求失败"); // 抛出异常，终止请求
-                    }
-
-                    // 如果是其他的错误，抛出异常
-                    GameLogger.LogError(
-                        $"[Net][Rsp]: 其他错误 RspText:{webRequest.downloadHandler.text}，Message:{ex.Message}");
-                    return default;
-                    ;
-                }
-                catch (Exception ex)
-                {
-                    // 捕获其他异常并记录
-                    GameLogger.LogError($"[Net][Rsp]: 出现意外错误：{ex.Message}");
-                    return default;
-                }
+                throw new Exception(webRequest.error);
+            }
+            catch (OperationCanceledException)
+            {
+                GameLogger.LogError($"[Net][Rsp]: 请求超时 Json:{json}");
+                return default;
+            }
+            catch (UnityWebRequestException)
+            {
+                return HandleWebError<T>(webRequest, json);
+            }
+            catch (Exception ex)
+            {
+                GameLogger.LogError($"[Net][Rsp]: 意外错误 Json:{json}, Err:{ex.Message}");
+                return default;
             }
         }
 
-        private async UniTask<T> Async_RequestSend<T>(UnityWebRequest webRequest, string json,
-            Dictionary<string, string> headers = null)
+        // 异步版发送（仅处理 Kick 业务码）
+        private async UniTask<T> Async_RequestSend<T>(UnityWebRequest webRequest, string json, Dictionary<string, string> headers = null)
         {
+            // 初始化上传/下载和头
             webRequest.uploadHandler = new UploadHandlerRaw(Encoding.UTF8.GetBytes(json));
             webRequest.downloadHandler = new DownloadHandlerBuffer();
             webRequest.SetRequestHeader("Content-Type", "application/json");
             if (headers != null)
-                foreach (var header in headers)
-                    webRequest.SetRequestHeader(header.Key, header.Value);
+            {
+                foreach (var kv in headers)
+                    webRequest.SetRequestHeader(kv.Key, kv.Value);
+            }
 
-
-            //IgnoreVerification_SSL(webRequest);
-            var operation = webRequest.SendWebRequest();
-
-            // 使用 CancellationToken 进行超时处理
-            using (var cancellationTokenSource = new CancellationTokenSource(HttpConfig.RequestTimeout))
+            // 发送请求并超时控制
+            var op = webRequest.SendWebRequest();
+            using (var cts = new CancellationTokenSource(HttpConfig.RequestTimeout))
             {
                 try
                 {
-                    await operation.WithCancellation(cancellationTokenSource.Token);
+                    await op.WithCancellation(cts.Token);
                 }
-                catch (OperationCanceledException)
+                catch
                 {
-                    GameLogger.LogError("[Net][Rsp][Get]:请求超时");
-                    return default;
-                }
-                catch (UnityWebRequestException ex) // 捕获 UnityWebRequest 异常
-                {
-                    GameLogger.LogError($"[Net][Rsp]: 请求失败，错误信息：{ex.Message}");
-                    return default;
-                }
-                catch (Exception ex) // 捕获其他异常
-                {
-                    GameLogger.LogError($"[Net][Rsp]: 出现意外错误：{ex.Message}");
+                    // 超时或异常，静默处理
+                    GameLogger.LogError($"[Net][Rsp][Async]: 请求异常 Json:{json}");
                     return default;
                 }
             }
 
-            GameLogger.LogWithColor("[Net][Rsp][Get]:" + webRequest.downloadHandler.text, AsyncRsp_Color);
-            return JsonConvert.DeserializeObject<T>(webRequest.downloadHandler.text);
-        }
-    }
+            // 成功响应
+            if (webRequest.result == UnityWebRequest.Result.Success)
+            {
+                // 更新服务器时间基准
+                UpdateServerTime(webRequest);
+                GameLogger.LogWithColor($"[Net][Rsp][Async]: {webRequest.downloadHandler.text}", "#ff0000");
+                return JsonConvert.DeserializeObject<T>(webRequest.downloadHandler.text);
+            }
 
-    /// <summary>
-    /// 允许忽略 SSL 验证
-    /// </summary>
-    public class WebReqSkipCert : CertificateHandler
-    {
-        protected override bool ValidateCertificate(byte[] certificateData)
+            // 非200响应，仅在 Kick 场景下处理
+            if ((HttpCode)webRequest.responseCode == HttpCode.kick)
+            {
+                var info = JsonConvert.DeserializeObject<HttpInfo>(webRequest.downloadHandler.text);
+                throw new Exception($"[Net][Rsp]: 用户被踢出游戏, RspText:{webRequest.downloadHandler.text}");
+            }
+
+            // 其他情况静默返回
+            return default;
+        }
+
+        // 更新服务器时间基准
+        private void UpdateServerTime(UnityWebRequest webRequest)
         {
-            return true;
+            string ts = webRequest.GetResponseHeader("Now-Timestamp");
+            if (!string.IsNullOrEmpty(ts) && long.TryParse(ts, out var serverTs))
+            {
+                _baseServerTimeAt = serverTs;
+                _serverTimeTimer.Restart();
+            }
+        }
+
+        // 业务错误处理
+        private T HandleWebError<T>(UnityWebRequest webRequest, string json)
+        {
+            var httpCode = (HttpCode)webRequest.responseCode;
+            var rspText = webRequest.downloadHandler.text;
+            var info = JsonConvert.DeserializeObject<HttpInfo>(rspText);
+            switch (httpCode)
+            {
+                case HttpCode.kick:
+                    throw new Exception($"[Net][Rsp]: 用户被踢出游戏,RspText:{rspText}");
+                case HttpCode.error:
+                    GameLogger.LogError($"[Net][Rsp]: 请求失败, Json:{json}, RspText:{rspText}");
+                    throw new Exception("[Net][Rsp]: 请求失败");
+                case HttpCode.update:
+                    GameLogger.LogError($"[Net][Rsp]: 请求失败, Json:{json}, RspText:{rspText}");
+                    throw new Exception("[Net][Rsp]: 请求失败");
+                default:
+                    GameLogger.LogError($"[Net][Rsp]: 其他错误, Json:{json}, RspText:{rspText}");
+                    return default;
+            }
         }
     }
 }

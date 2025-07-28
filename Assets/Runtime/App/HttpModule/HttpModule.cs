@@ -1,19 +1,16 @@
 using System;
 using Domain;
 using MIKUFramework.IOC;
-using UnityEngine;
+using Yuki;
 
-namespace Yuki
+namespace MCRogue
 {
     [Component]
     public partial class HttpModule : IHttpModule
     {
+        // 请求基础 URL
         private string Url = string.Empty;
-        
-        public void Init(string url)
-        {
-            Url = url;
-        }
+        public void Init(string url) => Url = url;
     }
     
     public enum HTTPVerbs
