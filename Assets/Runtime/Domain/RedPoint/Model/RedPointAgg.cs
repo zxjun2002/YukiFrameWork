@@ -84,86 +84,103 @@ namespace Domain
             return curNode;
         }
 
+                /// <summary>
+        /// 删除一个红点
+        /// </summary>
         public void DeleteNode(string key)
         {
-            if (FindNode(key) == null)
-            {
-                return;
-            }
+            if (string.IsNullOrEmpty(key)) return;
+            if (FindNode(key) == null) return; // 不存在直接返回
             DeleteNode(key, root);
         }
 
+        /// <summary>
+        /// 沿 key 递归删除“一次计数”；
+        /// 采用“后序”更新：先删叶子，再回溯到父节点做 --redNum 和剪枝。
+        /// </summary>
         private RedPointNode DeleteNode(string key, RedPointNode node)
         {
-            string[] keys = key.Split('|');
-            if (key=="" || keys.Length == 0)
+            // 走到目标节点（没有后续分段）
+            if (string.IsNullOrEmpty(key))
             {
-                node.redNum = Mathf.Clamp(node.redNum - 1, 0, node.redNum);
-                node.OnRedPointChange?.Invoke(node.redNum);
+                int before = node.redNum;
+                node.redNum = Mathf.Clamp(node.redNum - 1, 0, before);
+                if (node.redNum != before)
+                    node.OnRedPointChange?.Invoke(node.redNum);
                 return node;
             }
-            string newKey = string.Join("|", keys, 1, keys.Length - 1);
-            RedPointNode curNode = DeleteNode(newKey, node.children[keys[0]]);
 
-            node.redNum = Mathf.Clamp(node.redNum - 1, 0, node.redNum);
-            node.OnRedPointChange?.Invoke(node.redNum);
+            // 取 head|tail
+            int sep = key.IndexOf('|');
+            string head = sep < 0 ? key : key.Substring(0, sep);
+            string tail = sep < 0 ? string.Empty : key.Substring(sep + 1);
 
-            if (curNode.children.Count > 0)
+            if (!node.children.TryGetValue(head, out var child))
             {
-                foreach (RedPointNode child in curNode.children.Values)
-                {
-                    if (child.redNum == 0)
-                    {
-                        child.children.Remove(child.strKey);
-                    }
-                }
+                // 理论上不会到这（外面已检查存在性），稳妥起见直接返回
+                return node;
             }
+
+            // 先递归到子节点
+            DeleteNode(tail, child);
+
+            // 如果子节点已经空了，就从“父的 children”里移除它（✅ 正确的剪枝位置）
+            if (child.redNum == 0 && child.children.Count == 0)
+            {
+                node.children.Remove(head);
+            }
+
+            // 再回溯更新当前节点计数并广播
+            int before2 = node.redNum;
+            node.redNum = Mathf.Clamp(node.redNum - 1, 0, before2);
+            if (node.redNum != before2)
+                node.OnRedPointChange?.Invoke(node.redNum);
+
             return node;
         }
-        
+
         //直接清空一个节点
         public void ClearRedNode(string key)
         {
-            string[] keys = key.Split('|');
-            RedPointNode curNode = root;
-            Stack<RedPointNode> stack = new Stack<RedPointNode>();
+            if (FindNode(key) == null) return;
+            ClearRedNode(key, root);
+        }
 
-            foreach (string k in keys)
+        /// <summary>
+        /// 递归清空 key 对应分支，返回本分支被清除的总红点数；
+        /// 父节点用它来做 --redNum，并按需移除子节点。
+        /// </summary>
+        private int ClearRedNode(string key, RedPointNode node)
+        {
+            if (string.IsNullOrEmpty(key))
             {
-                if (!curNode.children.ContainsKey(k))
-                {
-                    return;
-                }
-                stack.Push(curNode);
-                curNode = curNode.children[k];
+                int diff = node.redNum;
+                node.redNum = 0;
+                node.children.Clear();
+                node.OnRedPointChange?.Invoke(0);
+                return diff;
             }
 
-            int diff = curNode.redNum; // Store the redNum to adjust parent nodes.
-            curNode.redNum = 0;
-            curNode.OnRedPointChange?.Invoke(0);
+            int sep = key.IndexOf('|');
+            string head = sep < 0 ? key : key.Substring(0, sep);
+            string tail = sep < 0 ? string.Empty : key.Substring(sep + 1);
 
-            if (stack.Count > 0)
-            {
-                RedPointNode parent = stack.Pop();
-                parent.children.Remove(keys[^1]);
+            if (!node.children.TryGetValue(head, out var child))
+                return 0;
 
-                while (stack.Count > 0)
-                {
-                    parent.redNum = Mathf.Clamp(parent.redNum - diff, 0, parent.redNum);
-                    parent.OnRedPointChange?.Invoke(parent.redNum);
+            int cleared = ClearRedNode(tail, child);
 
-                    if (parent.redNum == 0 && stack.Count > 0)
-                    {
-                        RedPointNode grandParent = stack.Pop();
-                        grandParent.children.Remove(parent.strKey);
-                        parent = grandParent;
-                    }
-                    else
-                    {
-                        break;
-                    }
-                }
-            }
+            // 子节点若已清空则剪枝
+            if (child.redNum == 0 && child.children.Count == 0)
+                node.children.Remove(head);
+
+            // 用 cleared 来回溯扣减当前节点并广播
+            int before = node.redNum;
+            node.redNum = Mathf.Clamp(node.redNum - cleared, 0, before);
+            if (node.redNum != before)
+                node.OnRedPointChange?.Invoke(node.redNum);
+
+            return cleared;
         }
 
         public void SetCallback(string key, RedPointNode.RedPointChangeDelegate cb)
