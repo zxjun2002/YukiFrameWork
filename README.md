@@ -14,7 +14,7 @@
 9.HyBird热更框架下的使用AA进行资源管理和脚本热更方案（待实现，后续需要把通用系统拆到主程序集，分出热更程序集）
 10.基于UnityWebRequest的Http网络通信框架
 11.Proto序列化器
-12.基于Lean Localization的多语言解决方案（待合并）
+12.基于Lean Localization的多语言解决方案
 13.基于UnityWebSocket的长链接通信模块（https://github.com/psygames/UnityWebSocket?tab=readme-ov-file）（待开发）
 14.行为树AI自编写架构
 15.雷火UX工具（包括多语言，层级管理器，新手引导模块） 目前主要使用其新手引导模块，多语言模块和层级管理器待定(后续打算移除)
