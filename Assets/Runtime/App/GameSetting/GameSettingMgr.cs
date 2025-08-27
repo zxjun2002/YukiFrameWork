@@ -44,9 +44,11 @@ public class GameSettingMgr : InjectableMonoBehaviour
         redPointRepository.Init();
         httpAppService.Init();
         httpModule.Init(HttpConfig.GameUrl);
+        Lean.Localization.LeanLocalization.SetCurrentLanguageAll("English");
         petRepository.Aggs[1].PetInfo_E.SetNickname(configTable.GetConfig<ItemRacastSet>().ItemCt[1001].itemTestList[0].ToString());
         GameLogger.LogCyan(configTable.GetConfig<ItemRacastSet>().ItemCt[1001].itemTestList[0].ToString());
         GameLogger.LogGreen(configTable.GetConfig<BuffRacastSet>().EffectCtCt[102].effectVal);
+        GameLogger.LogYellow(Lean.Localization.LeanLocalization.GetTranslationText("Title"));//获取key的翻译);
         await UniTask.DelayFrame(500);
         eventCenter.EventTrigger(new StringEventData(CustomEventType.TestEventWithParam,configTable.GetConfig<BuffRacastSet>().BuffCtCt[102].buffName));
         eventCenter.EventTrigger(CustomEventType.TestEventWithoutParam);
