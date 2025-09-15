@@ -50,7 +50,7 @@ public class GameSettingMgr : InjectableMonoBehaviour
         GameLogger.LogGreen(configTable.GetConfig<BuffRacastSet>().EffectCtCt[102].effectVal);
         GameLogger.LogYellow(Lean.Localization.LeanLocalization.GetTranslationText("Title"));//获取key的翻译);
         await UniTask.DelayFrame(500);
-        eventCenter.EventTrigger(new StringEventData(CustomEventType.TestEventWithParam,configTable.GetConfig<BuffRacastSet>().BuffCtCt[102].buffName));
+        eventCenter.EventTrigger(new StringEventData(CustomEventType.TestEventWithParam,configTable.GetConfig<BuffRacastSet>().GetBuffCt(101,1).buffName));
         eventCenter.EventTrigger(CustomEventType.TestEventWithoutParam);
         uiManager.Init(uiCamera);
         uiManager.OpenPanel<AUIPanel>();

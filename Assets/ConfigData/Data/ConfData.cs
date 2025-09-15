@@ -1,5 +1,5 @@
-/// <summary>
-/// 此代码为自动生成, 修改无意义, 重新生成会被覆盖
+﻿/// <summary>
+/// /// 此代码为自动生成, 修改无意义, 重新生成会被覆盖
 /// </summary>
 
 using MemoryPack;
@@ -35,9 +35,10 @@ public partial class TestItem
 [MemoryPackable]
 public partial class BuffCt
 {
-    public int id;
+    public int buffId;
     public string buffName;
     public float buffVal;
+    public int buffLevel;
 }
 
 [MemoryPackable]

@@ -18,9 +18,7 @@ namespace ReadConf
         public static void ReadConf()
         {
             GenCodeContent content = GenCodeEditor.DoGenConfCode();
-
             Debug.Log("代码生成成功");
-
             ReadConfData(content);
         }
         
@@ -102,19 +100,25 @@ namespace ReadConf
             using (var reader = new StreamReader(filePath))
             using (var csv = new CsvReader(reader, config))
             {
-                // 读取表头并转换为驼峰格式
+                // 第1行：表头
                 csv.Read();
                 csv.ReadHeader();
                 headerNames.AddRange(csv.HeaderRecord.Select(ReadConfEditorUtil.ToCamelLower));
 
-                // 跳过类型行（第二行）
+                // 第2行：优先级（跳过）
                 if (!csv.Read())
                 {
-                    Debug.LogWarning($"文件 {filePath} 缺少数据行，跳过解析");
+                    Debug.LogWarning($"文件 {filePath} 缺少优先级行，跳过解析");
+                    return;
+                }
+                // 第3行：类型（跳过）
+                if (!csv.Read())
+                {
+                    Debug.LogWarning($"文件 {filePath} 缺少类型行，跳过解析");
                     return;
                 }
 
-                // 逐行读取数据
+                // 从第4行开始：逐行读取数据
                 while (csv.Read())
                 {
                     var rowObj = Activator.CreateInstance(fieldType);
@@ -171,13 +175,14 @@ namespace ReadConf
                     List<object> confList = new List<object>();
 
                     bool isHeader = true;
-                    bool isTypeRowSkipped = false;
+                    bool prioritySkipped = false;
+                    bool typeSkipped = false;
 
                     while (reader.Read())
                     {
                         if (isHeader)
                         {
-                            // 读取表头，并将其转换为驼峰格式
+                            // 第1行：表头
                             for (int i = 0; i < reader.FieldCount; i++)
                             {
                                 headerNames.Add(ReadConfEditorUtil.ToCamelLower(reader.GetString(i)?.Trim() ?? string.Empty));
@@ -186,13 +191,10 @@ namespace ReadConf
                             continue;
                         }
 
-                        if (!isTypeRowSkipped)
-                        {
-                            // 跳过类型行（第二行）
-                            isTypeRowSkipped = true;
-                            continue;
-                        }
+                        if (!prioritySkipped) { prioritySkipped = true; continue; } // 第2行：优先级（跳过）
+                        if (!typeSkipped)     { typeSkipped = true;     continue; } // 第3行：类型（跳过）
 
+                        // —— 从这里开始是真实数据行 —— //
                         var rowObj = Activator.CreateInstance(fieldType);
 
                         for (int i = 0; i < subFields.Length; i++)
@@ -203,7 +205,6 @@ namespace ReadConf
                                 int fieldIndex = headerNames.IndexOf(subFieldName);
                                 if (fieldIndex < 0) continue;
 
-                                // 防止类型转换错误，使用合适的获取方法
                                 string value = reader.IsDBNull(fieldIndex) ? null : reader.GetValue(fieldIndex)?.ToString();
                                 object val = ConvertValue(value, subFields[i].FieldType);
                                 subFields[i].SetValue(rowObj, val);
@@ -234,12 +235,12 @@ namespace ReadConf
 
             try
             {
-                if (targetType == typeof(int)) return int.TryParse(value, out int intVal) ? intVal : 0;
-                if (targetType == typeof(long)) return long.TryParse(value, out long longVal) ? longVal : 0L;
-                if (targetType == typeof(float)) return float.TryParse(value, out float floatVal) ? floatVal : 0f;
+                if (targetType == typeof(int))    return int.TryParse(value, out int intVal) ? intVal : 0;
+                if (targetType == typeof(long))   return long.TryParse(value, out long longVal) ? longVal : 0L;
+                if (targetType == typeof(float))  return float.TryParse(value, out float floatVal) ? floatVal : 0f;
                 if (targetType == typeof(double)) return double.TryParse(value, out double doubleVal) ? doubleVal : 0d;
-                if (targetType == typeof(bool)) return bool.TryParse(value, out bool boolVal) ? boolVal : false;
-                if (targetType == typeof(int[])) return ParseIntArray(value);
+                if (targetType == typeof(bool))   return bool.TryParse(value, out bool boolVal) ? boolVal : false;
+                if (targetType == typeof(int[]))  return ParseIntArray(value);
                 if (targetType == typeof(List<int>)) return ParseIntList(value);
             }
             catch (Exception ex)
@@ -268,10 +269,8 @@ namespace ReadConf
             {
                 value = value.Substring(1, value.Length - 2);
             }
-
             return value.Split(',').Select(s => int.TryParse(s.Trim(), out int val) ? val : 0).ToArray();
         }
-
 
         private static List<int> ParseIntList(string value)
         {
@@ -280,7 +279,6 @@ namespace ReadConf
             {
                 value = value.Substring(1, value.Length - 2);
             }
-
             return value.Split(',').Select(s => int.TryParse(s.Trim(), out int val) ? val : 0).ToList();
         }
     }
@@ -293,8 +291,9 @@ namespace ReadConf
             string[] nameStrs = str.Split("_");
             for (int i = 0; i < nameStrs.Length; i++)
             {
+                if (string.IsNullOrEmpty(nameStrs[i])) continue;
                 result += char.ToUpper(nameStrs[i][0]);
-                result += nameStrs[i][1..];
+                if (nameStrs[i].Length > 1) result += nameStrs[i][1..];
             }
             return result;
         }
@@ -303,11 +302,13 @@ namespace ReadConf
         {
             string result = "";
             string[] nameStrs = str.Split("_");
+            if (nameStrs.Length == 0) return str;
             result += nameStrs[0];
             for (int i = 1; i < nameStrs.Length; i++)
             {
+                if (string.IsNullOrEmpty(nameStrs[i])) continue;
                 result += char.ToUpper(nameStrs[i][0]);
-                result += nameStrs[i][1..];
+                if (nameStrs[i].Length > 1) result += nameStrs[i][1..];
             }
             return result;
         }

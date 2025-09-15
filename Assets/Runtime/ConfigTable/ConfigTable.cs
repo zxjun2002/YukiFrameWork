@@ -33,7 +33,7 @@ public class ConfigTable: IConfigTable
         GameLogger.Log("配置表初始化成功！！！");
     }
 
-    public T GetConfig<T>() where T : struct, IRacastSet
+    public T GetConfig<T>() where T : class, IRacastSet
     {
         var type = typeof(T);
         if (!racastSets.TryGetValue(type, out var lazy))
