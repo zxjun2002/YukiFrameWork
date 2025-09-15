@@ -23,7 +23,7 @@ namespace ReadConf
             string[] xlsFiles = Directory.GetFiles(Application.dataPath + ResEditorConfig.CSV_Path, "*.xls",
                 SearchOption.AllDirectories);
 
-            string tip = "/// <summary>\n/// /// 此代码为自动生成, 修改无意义, 重新生成会被覆盖\n/// </summary>\n\n";
+            string tip = "/// <summary>\n/// 此代码为自动生成, 修改无意义, 重新生成会被覆盖\n/// </summary>\n\n";
             string codeStr = "using MemoryPack;\nusing System.Collections.Generic;\n\n";
 
             string fieldStr = "[MemoryPackable]\npublic partial class ConfData\n{\n";
