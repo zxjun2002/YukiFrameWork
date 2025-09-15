@@ -14,7 +14,7 @@ namespace ReadConf
 {
     public class ReadConfEditor
     {
-        [MenuItem("Tool/读取配置表")]
+        [MenuItem("Tool/配置表/配置表本地生成")]
         public static void ReadConf()
         {
             GenCodeContent content = GenCodeEditor.DoGenConfCode();

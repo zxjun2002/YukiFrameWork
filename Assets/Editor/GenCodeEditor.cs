@@ -19,11 +19,11 @@ namespace ReadConf
             string[] excelFiles = Directory.GetFiles(Application.dataPath + ResEditorConfig.CSV_Path, "*.xlsx", SearchOption.AllDirectories);
             string[] xlsFiles = Directory.GetFiles(Application.dataPath + ResEditorConfig.CSV_Path, "*.xls", SearchOption.AllDirectories);
 
-            string tip = "/// <summary>\n/// 此代码为自动生成,修改无意义重新生成会被后覆盖\n/// </summary>\n\n";
+            string tip = "/// <summary>\n/// /// 此代码为自动生成, 修改无意义, 重新生成会被覆盖\n/// </summary>\n\n";
             
             string codeStr = "using MemoryPack;\nusing System.Collections.Generic;\n\n";
 
-            string fieldStr = "[MemoryPackable]\npublic partial class ConfData{\n";
+            string fieldStr = "[MemoryPackable]\npublic partial class ConfData\n{\n";
             string defStr = "";
 
             GenCodeContent result = new()
@@ -78,7 +78,7 @@ namespace ReadConf
 
                 string className = Path.GetFileNameWithoutExtension(file);
                 className = ReadConfEditorUtil.ToCamelUpper(className);
-                string classDef = $"[MemoryPackable]\npublic partial class {className} {{\n";
+                string classDef = $"[MemoryPackable]\npublic partial class {className}\n{{\n";
 
                 List<GenCodeProp> props = new();
 
@@ -163,7 +163,7 @@ namespace ReadConf
                         }
 
                         string className = ReadConfEditorUtil.ToCamelUpper(sheetName);
-                        string classDef = $"[MemoryPackable]\npublic partial class {className} {{\n";
+                        string classDef = $"[MemoryPackable]\npublic partial class {className}\n{{\n";
 
                         List<GenCodeProp> props = new();
 
