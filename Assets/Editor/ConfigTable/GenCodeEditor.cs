@@ -16,11 +16,11 @@ namespace ReadConf
     {
         public static GenCodeContent DoGenConfCode()
         {
-            string[] csvFiles = Directory.GetFiles(Application.dataPath + ResEditorConfig.CSV_Path, "*.csv",
+            string[] csvFiles = Directory.GetFiles(Application.dataPath + ResEditorConfig.Config_Path, "*.csv",
                 SearchOption.AllDirectories);
-            string[] excelFiles = Directory.GetFiles(Application.dataPath + ResEditorConfig.CSV_Path, "*.xlsx",
+            string[] excelFiles = Directory.GetFiles(Application.dataPath + ResEditorConfig.Config_Path, "*.xlsx",
                 SearchOption.AllDirectories);
-            string[] xlsFiles = Directory.GetFiles(Application.dataPath + ResEditorConfig.CSV_Path, "*.xls",
+            string[] xlsFiles = Directory.GetFiles(Application.dataPath + ResEditorConfig.Config_Path, "*.xls",
                 SearchOption.AllDirectories);
 
             string tip = "/// <summary>\n/// 此代码为自动生成, 修改无意义, 重新生成会被覆盖\n/// </summary>\n\n";

@@ -26,7 +26,7 @@ namespace ReadConf
         /// 解析配置文件数据到 ConfData 对象。
         /// 支持 .csv、.xlsx 和 .xls 文件。
         /// </summary>
-        public static void ReadConfData(GenCodeContent content)
+        private static void ReadConfData(GenCodeContent content)
         {
             ConfData data = new ConfData();
 
