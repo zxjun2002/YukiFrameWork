@@ -10,10 +10,12 @@ namespace Domain
 
         public void Init()
         {
-            if (Agg == null)
-            {
-                Agg = new RedPointAgg();
-            }
+            Agg ??= new RedPointAgg();
+        }
+
+        public void Clear()
+        {
+            Agg = null;
         }
     }
 }

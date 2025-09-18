@@ -6,14 +6,11 @@ namespace Domain
     [Component]
     public class GuideRepository
     {
-        public GuideAgg Agg { get; private set; }
+        private GuideAgg Agg { get; set; }
 
         public void Init(UIBeginnerGuideManager guideManager)
         {
-            if (Agg == null)
-            {
-                Agg = new GuideAgg(guideManager);
-            }
+            Agg ??= new GuideAgg(guideManager);
         }
 
         public void AddGuide(UIBeginnerGuideDataList datalist)
@@ -24,6 +21,11 @@ namespace Domain
         public void PlayGuide()
         {
             Agg._guideManager.ShowGuideList();
+        }
+        
+        public void Clear()
+        {
+            Agg = null;
         }
     }
 }

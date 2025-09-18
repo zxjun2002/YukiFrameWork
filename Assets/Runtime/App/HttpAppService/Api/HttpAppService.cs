@@ -52,7 +52,7 @@ namespace Yuki
             });
         }
 
-        public void OnDestory()
+        public void OnDestroy()
         {
             httplock?.Dispose();
             disposable?.Dispose();

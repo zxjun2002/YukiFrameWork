@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using MIKUFramework.IOC;
-using UnityEngine.Events;
 
 [Component]
 public class EventCenter : IEventCenter
@@ -12,11 +11,11 @@ public class EventCenter : IEventCenter
     /// <summary>
     /// 添加无参事件监听
     /// </summary>
-    public void AddEventListener(Enum eventType, UnityAction action)
+    public void AddEventListener(Enum eventType, Action action)
     {
         if (_eventDic.TryGetValue(eventType, out var existingDelegate))
         {
-            if (existingDelegate is UnityAction existingAction)
+            if (existingDelegate is Action existingAction)
             {
                 if (Array.Exists(existingAction.GetInvocationList(), d => d == (Delegate)action))
                 {
@@ -40,11 +39,11 @@ public class EventCenter : IEventCenter
     /// <summary>
     /// 添加有参事件监听
     /// </summary>
-    public void AddEventListener(Enum eventType, UnityAction<BaseEventData> action)
+    public void AddEventListener(Enum eventType, Action<BaseEventData> action)
     {
         if (_eventDic.TryGetValue(eventType, out var existingDelegate))
         {
-            if (existingDelegate is UnityAction<BaseEventData> existingAction)
+            if (existingDelegate is Action<BaseEventData> existingAction)
             {
                 if (Array.Exists(existingAction.GetInvocationList(), d => d == (Delegate)action))
                 {
@@ -68,9 +67,9 @@ public class EventCenter : IEventCenter
     /// <summary>
     /// 移除无参事件监听
     /// </summary>
-    public void RemoveEventListener(Enum eventType, UnityAction action)
+    public void RemoveEventListener(Enum eventType, Action action)
     {
-        if (_eventDic.TryGetValue(eventType, out var existingDelegate) && existingDelegate is UnityAction existingAction)
+        if (_eventDic.TryGetValue(eventType, out var existingDelegate) && existingDelegate is Action existingAction)
         {
             var newAction = existingAction - action;
 
@@ -88,9 +87,9 @@ public class EventCenter : IEventCenter
     /// <summary>
     /// 移除有参事件监听
     /// </summary>
-    public void RemoveEventListener(Enum eventType, UnityAction<BaseEventData> action)
+    public void RemoveEventListener(Enum eventType, Action<BaseEventData> action)
     {
-        if (_eventDic.TryGetValue(eventType, out var existingDelegate) && existingDelegate is UnityAction<BaseEventData> existingAction)
+        if (_eventDic.TryGetValue(eventType, out var existingDelegate) && existingDelegate is Action<BaseEventData> existingAction)
         {
             var newAction = existingAction - action;
 
@@ -110,7 +109,7 @@ public class EventCenter : IEventCenter
     /// </summary>
     public void EventTrigger(Enum eventType)
     {
-        if (_eventDic.TryGetValue(eventType, out var existingDelegate) && existingDelegate is UnityAction action)
+        if (_eventDic.TryGetValue(eventType, out var existingDelegate) && existingDelegate is Action action)
         {
             action.Invoke();
         }
@@ -125,7 +124,7 @@ public class EventCenter : IEventCenter
     /// </summary>
     public void EventTrigger(BaseEventData eventData)
     {
-        if (_eventDic.TryGetValue(eventData.EventType, out var existingDelegate) && existingDelegate is UnityAction<BaseEventData> action)
+        if (_eventDic.TryGetValue(eventData.EventType, out var existingDelegate) && existingDelegate is Action<BaseEventData> action)
         {
             action.Invoke(eventData);
         }
