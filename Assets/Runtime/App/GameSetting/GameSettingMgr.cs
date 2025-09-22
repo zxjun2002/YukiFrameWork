@@ -1,3 +1,4 @@
+using System.IO;
 using Cysharp.Threading.Tasks;
 using Cysharp.Threading.Tasks.Linq;
 using Domain;
@@ -39,7 +40,8 @@ public class GameSettingMgr : InjectableMonoBehaviour
         deviceAppService.Init();
         eventCenter.AddEventListener(CustomEventType.TestEventWithParam,TestEventWithParam);
         eventCenter.AddEventListener(CustomEventType.TestEventWithoutParam,TestEventWithoutParam);
-        configTable.Init(ResEditorConfig.ConfsAsset_Path);
+        string configPath = Path.Combine(Application.dataPath, ResEditorConfig.ConfsAsset_Path);
+        configTable.Init(configPath);
         petRepository.Init();
         redPointRepository.Init();
         httpAppService.Init();

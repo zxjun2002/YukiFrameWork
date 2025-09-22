@@ -11,7 +11,7 @@ public class ResEditorConfig
     /// <summary>
     /// 配置表二进制文件路径
     /// </summary>
-    public const string ConfsAsset_Path = "Assets/ConfigData/Configs/ConfData.bytes";
+    public const string ConfsAsset_Path = "ConfigData/Configs/ConfData.bytes";
     /// <summary>
     /// 配置表生成代码路径
     /// </summary>

@@ -5,10 +5,12 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Reflection;
+using System.Text;
 using CsvHelper;
 using CsvHelper.Configuration;
 using ExcelDataReader;
 using UnityEngine;
+using Newtonsoft.Json; // 用于跨域保存/恢复 GenCodeContent
 
 namespace ReadConf
 {
@@ -16,12 +18,20 @@ namespace ReadConf
     [InitializeOnLoad]
     static class ConfGenWorkflow
     {
-        const string PendingKey = "ConfGen.Pending";
-        const string SideKey    = "ConfGen.Side";
+        const string PendingKey      = "ConfGen.Pending";
+        const string SideKey         = "ConfGen.Side";
+        const string ContentPathKey  = "ConfGen.ContentPath";
 
         static ConfGenWorkflow()
         {
             EditorApplication.update += Tick;
+        }
+
+        static string GetTempJsonPath()
+        {
+            // 放到 Library 里，避免进版本控制
+            var projectRoot = Path.GetFullPath(Path.Combine(Application.dataPath, ".."));
+            return Path.Combine(projectRoot, "Library", "ConfGen.LastContent.json");
         }
 
         static void Tick()
@@ -38,12 +48,19 @@ namespace ReadConf
 
             // 编译完成：清理进度条，继续读表
             EditorUtility.ClearProgressBar();
-
-            var side = SessionState.GetString(SideKey, "C");
+            
+            var jsonPath = SessionState.GetString(ContentPathKey, GetTempJsonPath());
             try
             {
-                // 重新扫描（不再生成代码），拿到最新映射
-                var content = GenCodeEditor.ScanOnly(side);
+                if (!File.Exists(jsonPath))
+                    throw new FileNotFoundException("未找到缓存的 GenCodeContent JSON", jsonPath);
+
+                var json = File.ReadAllText(jsonPath, Encoding.UTF8);
+                var content = JsonConvert.DeserializeObject<GenCodeEditor.GenCodeContent>(json);
+
+                if (content == null || content.classes == null || content.classes.Count == 0)
+                    throw new Exception("缓存的 GenCodeContent 为空或无表。");
+
                 ReadConfEditor.ReadConfData(content);
                 EditorUtility.DisplayDialog("配置表生成", "代码生成 & 数据导入完成！", "确定");
             }
@@ -54,15 +71,31 @@ namespace ReadConf
             }
             finally
             {
+                // 清理
+                try
+                {
+                    if (File.Exists(jsonPath)) File.Delete(jsonPath);
+                }
+                catch { /* ignore */ }
+
                 SessionState.EraseBool(PendingKey);
                 SessionState.EraseString(SideKey);
+                SessionState.EraseString(ContentPathKey);
             }
         }
 
-        public static void BeginWait(string side)
+        public static void BeginWait(string side, GenCodeEditor.GenCodeContent content)
         {
+            // 将 content 序列化到临时 JSON，跨域传递
+            var jsonPath = GetTempJsonPath();
+            Directory.CreateDirectory(Path.GetDirectoryName(jsonPath)!);
+            var json = JsonConvert.SerializeObject(content);
+            File.WriteAllText(jsonPath, json, Encoding.UTF8);
+
             SessionState.SetBool(PendingKey, true);
             SessionState.SetString(SideKey, string.IsNullOrWhiteSpace(side) ? "C" : side.ToUpperInvariant());
+            SessionState.SetString(ContentPathKey, jsonPath);
+
             EditorUtility.DisplayProgressBar("配置表", "等待脚本编译完成...", 0.3f);
         }
     }
@@ -70,21 +103,18 @@ namespace ReadConf
     public class ReadConfEditor
     {
         [MenuItem("Tool/配置表/配置表本地生成")]
-        public static void ReadConfClient()
-        {
-            GenerateAndWait("C");
-        }
+        public static void ReadConfClient() => GenerateAndWait("C");
 
         private static void GenerateAndWait(string side)
         {
             try
             {
-                // 1) 生成代码 & Racast（按 .schema.json + side）
-                GenCodeEditor.DoGenConfCode(side);
-                Debug.Log($"[配置表] 代码生成成功（side={side}）");
+                // 1) 生成代码 & Racast（按 .schema.json + side），拿到 content
+                var content = GenCodeEditor.DoGenConfCode(side);
+                Debug.Log($"[配置表] 代码生成成功（side={side}，表数={content?.classes?.Count ?? 0}）");
 
-                // 2) 标记“待继续”，刷新触发编译；编译完成后 ConfGenWorkflow.Tick 会继续 ReadConfData
-                ConfGenWorkflow.BeginWait(side);
+                // 2) 标记“待继续”，缓存 content，刷新触发编译；编译完成后 ConfGenWorkflow.Tick 会继续 ReadConfData
+                ConfGenWorkflow.BeginWait(side, content);
                 AssetDatabase.Refresh(); // 触发编译 & 域重载
             }
             catch (Exception ex)
@@ -99,15 +129,30 @@ namespace ReadConf
         /// </summary>
         public static void ReadConfData(GenCodeEditor.GenCodeContent content)
         {
-            ConfData data = new ConfData();
-            var fields = typeof(ConfData).GetFields();
+            // 运行时查 ConfData 类型；没有就温和退出（不报编译错）
+            var confDataType = AppDomain.CurrentDomain
+                .GetAssemblies()
+                .SelectMany(SafeGetTypes)
+                .FirstOrDefault(t => t.Name == "ConfData");
 
+            if (confDataType == null)
+            {
+                Debug.LogWarning("[配置表] 未找到 ConfData 类型，已跳过数据导入。（这通常表示刚生成代码但尚未编译完成）");
+                return;
+            }
+
+            // new ConfData()
+            var data = Activator.CreateInstance(confDataType)!;
+
+            // 反射遍历字段：public T[] field;
+            var fields = confDataType.GetFields(BindingFlags.Public | BindingFlags.Instance);
             foreach (var field in fields)
             {
-                Type elemType   = field.FieldType.GetElementType();
-                FieldInfo[] sub = elemType.GetFields();
+                var elemType  = field.FieldType.GetElementType();
+                if (elemType == null) continue;
 
-                string className = char.ToUpper(field.Name[0]) + field.Name[1..];
+                var subFields = elemType.GetFields(BindingFlags.Public | BindingFlags.Instance);
+                string className = char.ToUpper(field.Name[0]) + field.Name.Substring(1);
 
                 var cc = content.classes.FirstOrDefault(c => c.className == className);
                 if (cc == null)
@@ -124,7 +169,8 @@ namespace ReadConf
 
                     if (filePath.EndsWith(".csv", StringComparison.OrdinalIgnoreCase))
                     {
-                        ReadCsvFile(filePath, elemType, sub, headerNames, confList);
+                        ReadCsvFile(filePath, elemType, subFields, headerNames, confList);
+
                         var arr = Array.CreateInstance(elemType, confList.Count);
                         for (int i = 0; i < confList.Count; i++) arr.SetValue(confList[i], i);
                         field.SetValue(data, arr);
@@ -132,7 +178,8 @@ namespace ReadConf
                     else if (filePath.EndsWith(".xlsx", StringComparison.OrdinalIgnoreCase) ||
                              filePath.EndsWith(".xls",  StringComparison.OrdinalIgnoreCase))
                     {
-                        ReadExcelFile(filePath, content, elemType, sub, data, className);
+                        // 这里用传入的 FieldInfo 直接赋值
+                        ReadExcelFile(filePath, elemType, subFields, data, className, field);
                     }
                     else
                     {
@@ -145,8 +192,54 @@ namespace ReadConf
                 }
             }
 
-            FileBytesUtil.SaveConfDataToByteFile(data, ResEditorConfig.ConfsAsset_Path);
-            Debug.Log("[配置表] 数据已序列化到 bytes");
+            // ---- 直接用 MemoryPack 反射序列化并写文件（不依赖 SaveConfDataToByteFile）----
+            string outPath = Path.Combine(Application.dataPath, ResEditorConfig.ConfsAsset_Path);
+
+            try
+            {
+                byte[] bytes;
+
+                // 优先用非泛型 Serialize(Type, object, options)
+                var nonGeneric = typeof(MemoryPack.MemoryPackSerializer)
+                    .GetMethods(BindingFlags.Public | BindingFlags.Static)
+                    .FirstOrDefault(m =>
+                        m.Name == "Serialize" &&
+                        !m.IsGenericMethod &&
+                        m.GetParameters().Length >= 2 &&
+                        m.GetParameters()[0].ParameterType == typeof(Type));
+
+                if (nonGeneric != null)
+                {
+                    bytes = (byte[])nonGeneric.Invoke(null, new object?[] { confDataType, data, null });
+                }
+                else
+                {
+                    // 兜底：泛型 Serialize<T>(T, options)
+                    var generic = typeof(MemoryPack.MemoryPackSerializer)
+                        .GetMethods(BindingFlags.Public | BindingFlags.Static)
+                        .First(m => m.Name == "Serialize" && m.IsGenericMethodDefinition);
+
+                    var gm = generic.MakeGenericMethod(confDataType);
+                    bytes = (byte[])gm.Invoke(null, new object?[] { data, null });
+                }
+
+                var dir = Path.GetDirectoryName(outPath);
+                if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir)) Directory.CreateDirectory(dir);
+
+                File.WriteAllBytes(outPath, bytes);
+                Debug.Log($"[配置表] 数据已序列化到 bytes -> {outPath}");
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError("[配置表] 写 bytes 失败: " + ex);
+            }
+        }
+
+        // 安全获取类型，避免某些程序集抛异常
+        private static IEnumerable<Type> SafeGetTypes(Assembly asm)
+        {
+            try { return asm.GetTypes(); }
+            catch { return Array.Empty<Type>(); }
         }
 
         // ========== CSV：只读第一行表头，其余全是数据 ==========
@@ -199,8 +292,13 @@ namespace ReadConf
         }
 
         // ========== Excel：只读第一行表头，其余全是数据 ==========
-        private static void ReadExcelFile(string filePath, GenCodeEditor.GenCodeContent content,
-            Type elemType, FieldInfo[] subFields, ConfData data, string currentClassName)
+        private static void ReadExcelFile(
+            string filePath,
+            Type elemType,
+            FieldInfo[] subFields,
+            object dataObj,
+            string currentClassName,
+            FieldInfo targetField)
         {
             using var stream = File.Open(filePath, FileMode.Open, FileAccess.Read);
             using var reader = ExcelReaderFactory.CreateReader(stream);
@@ -210,14 +308,6 @@ namespace ReadConf
                 string sheetName = reader.Name;
                 if (ReadConfEditorUtil.ToCamelUpper(sheetName) != currentClassName)
                     continue;
-
-                var field = typeof(ConfData).GetField(currentClassName,
-                    BindingFlags.IgnoreCase | BindingFlags.Public | BindingFlags.Instance);
-                if (field == null)
-                {
-                    Debug.LogWarning($"ConfData 中未找到字段: {currentClassName}");
-                    continue;
-                }
 
                 var headerNames = new List<string>();
                 var confList    = new List<object>();
@@ -233,7 +323,7 @@ namespace ReadConf
                         continue;
                     }
 
-                    var rowObj = Activator.CreateInstance(elemType);
+                    var rowObj = Activator.CreateInstance(elemType)!;
                     for (int i = 0; i < subFields.Length; i++)
                     {
                         try
@@ -256,7 +346,7 @@ namespace ReadConf
 
                 var arr = Array.CreateInstance(elemType, confList.Count);
                 for (int i = 0; i < confList.Count; i++) arr.SetValue(confList[i], i);
-                field.SetValue(data, arr);
+                targetField.SetValue(dataObj, arr);
 
             } while (reader.NextResult());
         }

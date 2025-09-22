@@ -15,7 +15,7 @@ public class ConfigTable: IConfigTable
 
     public void Init(string url)
     {
-        confs = FileBytesUtil.LoadConfFromBinary<ConfData>(ResEditorConfig.ConfsAsset_Path);
+        confs = FileBytesUtil.LoadConfFromBinary<ConfData>(url);
         //TODO：新增配置表需加入racastSets中
         racastSets = new Dictionary<Type, Lazy<IRacastSet>>
         {

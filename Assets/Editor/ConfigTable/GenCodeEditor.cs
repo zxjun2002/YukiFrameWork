@@ -30,6 +30,7 @@ namespace ReadConf
 
             foreach (var c in content.classes)
             {
+                Debug.Log($"[生成配置表]:{Path.GetFileName(c.FilePath)}");
                 string classFieldName = char.ToLower(c.className[0]) + c.className[1..];
                 fieldStr += $"    public {c.className}[] {classFieldName};\n";
                 defStr   += c.classDef;
@@ -46,17 +47,22 @@ namespace ReadConf
             fieldStr += "}\n\n";
             codeStr = tip + codeStr + fieldStr + defStr;
 
-            File.WriteAllText(Application.dataPath + ResEditorConfig.ConfData_Path, codeStr, Encoding.UTF8);
+            // 确保目录存在
+            var outPath = Application.dataPath + ResEditorConfig.ConfData_Path;
+            var outDir = Path.GetDirectoryName(outPath);
+            if (!string.IsNullOrEmpty(outDir)) Directory.CreateDirectory(outDir);
+
+            File.WriteAllText(outPath, codeStr, Encoding.UTF8);
             Debug.Log("[配置表][Editor] ConfData.cs 生成完成");
+            
+            //确保 IRacastSet.cs 存在
+            EnsureIRacastSet(Application.dataPath + ResEditorConfig.Racast_Path);
 
             // 生成 RacastSet（根据 schema 的 pk_order 生成多层索引）
             DoGenRacastSet(folderClasses, content.classes);
 
             return content;
         }
-
-        // ======= 外部入口：仅扫描（用于编译后重建映射再读数据） =======
-        public static GenCodeContent ScanOnly(string side = "C") => BuildGenCodeContent(side);
 
         // ======= 读取文件 + schema，产出 GenCodeContent（核心） =======
         private static GenCodeContent BuildGenCodeContent(string side = "C")
@@ -200,6 +206,8 @@ namespace ReadConf
                         continue;
                     }
 
+                    Debug.Log($"[生成配置表]:{Path.GetFileName(file)}/{sheetName}");
+
                     result.classes.Add(new ClassContent
                     {
                         className     = className,
@@ -234,6 +242,24 @@ namespace ReadConf
             foreach (var h in csv.HeaderRecord)
                 set.Add(ReadConfEditorUtil.ToCamelLower(h));
             return set;
+        }
+        
+        private static void EnsureIRacastSet(string outRacastDir)
+        {
+            try
+            {
+                Directory.CreateDirectory(outRacastDir);
+                var path = Path.Combine(outRacastDir, "IRacastSet.cs");
+                if (!File.Exists(path))
+                {
+                    File.WriteAllText(path, "public interface IRacastSet { }", new UTF8Encoding(false));
+                    Debug.Log($"[配置表][Editor] 首次生成 IRacastSet.cs -> {path}");
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"[配置表][Editor] 生成 IRacastSet.cs 失败：{ex.Message}");
+            }
         }
 
         // ====== RacastSet 生成（保持你原来的风格） ======
@@ -355,14 +381,14 @@ namespace ReadConf
             var t = (csvType ?? "").Trim().ToLowerInvariant();
             return t switch
             {
-                "int" or "int32" or "i32"                 => "int",
-                "long" or "int64" or "i64"                => "long",
-                "float" or "single" or "float32" or "f32" => "float",
-                "double" or "float64" or "f64"            => "double",
-                "bool" or "boolean"                       => "bool",
-                "int[]" or "int32[]" or "i32[]"           => "int[]",
-                "list<int>" or "list<int32>" or "int list"=> "List<int>",
-                _                                          => "string",
+                "int"       => "int",
+                "long"      => "long",
+                "float"     => "float",
+                "double"    => "double",
+                "bool"      => "bool",
+                "int[]"     => "int[]",
+                "list<int>" => "List<int>",
+                _           => "string",
             };
         }
 
@@ -373,7 +399,6 @@ namespace ReadConf
             try
             {
                 var json = File.ReadAllText(path, Encoding.UTF8);
-                // Newtonsoft.Json 大小写默认不敏感；这里也可加一些容错设置
                 var settings = new JsonSerializerSettings
                 {
                     MissingMemberHandling = MissingMemberHandling.Ignore,
@@ -407,7 +432,7 @@ namespace ReadConf
             return cs == "ALL" || cs == target;
         }
 
-        // ====== 模型 ======
+        // ====== 模型（schema） ======
         class SchemaProperty { public string property_name { get; set; } = ""; public string property_value { get; set; } = ""; }
         class ColumnSchema
         {
@@ -435,7 +460,7 @@ namespace ReadConf
             public List<SheetSchema> sheets { get; set; } = new();
         }
 
-        // ====== 导出给外部用的数据模型（保持你原样） ======
+        // ====== 导出给外部用的数据模型 ======
         public class GenCodeProp { public string name; public string propType; }
         public class ClassContent
         {
@@ -448,7 +473,7 @@ namespace ReadConf
         }
         public class GenCodeContent { public List<ClassContent> classes; }
     }
-    
+
     public static class ReadConfEditorUtil
     {
         public static string ToCamelUpper(string str)

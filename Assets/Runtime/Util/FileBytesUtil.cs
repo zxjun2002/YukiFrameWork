@@ -3,14 +3,6 @@ using MemoryPack;
 
 public class FileBytesUtil
 {
-    // 将普通类序列化并保存为字节文件
-    public static void SaveConfDataToByteFile<T>(T conf,string filePath)
-    {
-        //序列化对象到字节数组
-        byte[] byteData = MemoryPackSerializer.Serialize(conf);
-        File.WriteAllBytes(filePath, byteData);
-    }
-
     /// <summary>
     /// 从字节文件中加载并反序列化为对象
     /// </summary>
