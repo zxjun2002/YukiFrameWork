@@ -1,4 +1,4 @@
-using System.Collections.Generic; 
+using System.Collections.Generic;
 using System.Globalization;
 using UnityEngine;
 using System.IO;
@@ -7,21 +7,17 @@ using System.Text;
 using CsvHelper;
 using CsvHelper.Configuration;
 using ExcelDataReader;
-using UnityEditor; // 引入用于处理 Excel 文件的库
+using Newtonsoft.Json;
 using System;
 
 namespace ReadConf
 {
     public static class GenCodeEditor
     {
-        public static GenCodeContent DoGenConfCode()
+        // ======= 外部入口：生成代码（按 side 过滤：C/S/ALL，缺省 C） =======
+        public static GenCodeContent DoGenConfCode(string side = "C")
         {
-            string[] csvFiles = Directory.GetFiles(Application.dataPath + ResEditorConfig.Config_Path, "*.csv",
-                SearchOption.AllDirectories);
-            string[] excelFiles = Directory.GetFiles(Application.dataPath + ResEditorConfig.Config_Path, "*.xlsx",
-                SearchOption.AllDirectories);
-            string[] xlsFiles = Directory.GetFiles(Application.dataPath + ResEditorConfig.Config_Path, "*.xls",
-                SearchOption.AllDirectories);
+            var content = BuildGenCodeContent(side);
 
             string tip = "/// <summary>\n/// 此代码为自动生成, 修改无意义, 重新生成会被覆盖\n/// </summary>\n\n";
             string codeStr = "using MemoryPack;\nusing System.Collections.Generic;\n\n";
@@ -29,262 +25,218 @@ namespace ReadConf
             string fieldStr = "[MemoryPackable]\npublic partial class ConfData\n{\n";
             string defStr = "";
 
-            GenCodeContent result = new()
-            {
-                classes = new List<ClassContent>()
-            };
-
-            // 按所属文件夹分组
+            // 按所属文件夹分组（用于 RacastSet）
             var folderClasses = new Dictionary<string, List<(string className, string classFieldName)>>();
 
-            #region 解析 CSV
-
-            foreach (string file in csvFiles)
+            foreach (var c in content.classes)
             {
-                Debug.Log("[配置表][Editor] " + file);
+                string classFieldName = char.ToLower(c.className[0]) + c.className[1..];
+                fieldStr += $"    public {c.className}[] {classFieldName};\n";
+                defStr   += c.classDef;
 
-                var config = new CsvConfiguration(CultureInfo.InvariantCulture)
-                {
-                    HasHeaderRecord = true,
-                    Delimiter = ",",
-                    TrimOptions = TrimOptions.None,
-                    PrepareHeaderForMatch = args => args.Header.Trim(),
-                    BadDataFound = null
-                };
-
-                List<string> propertyNames;
-                List<string> propertyTypes; // 第3行：类型
-                List<int?> keyPriorities; // 第2行：优先级
-
-                using (var reader = new StreamReader(file))
-                using (var csv = new CsvReader(reader, config))
-                {
-                    // 第1行：列名
-                    csv.Read();
-                    csv.ReadHeader();
-                    propertyNames = csv.HeaderRecord.ToList();
-
-                    // 第2行：优先级
-                    if (!csv.Read())
-                    {
-                        Debug.LogWarning($"[警告] 文件 {file} 缺少优先级行。");
-                        continue;
-                    }
-
-                    keyPriorities = ParsePriorityRow(propertyNames.Count, i => csv.GetField(i));
-
-                    // 第3行：类型
-                    if (!csv.Read())
-                    {
-                        Debug.LogWarning($"[警告] 文件 {file} 缺少类型行。");
-                        continue;
-                    }
-
-                    propertyTypes = new List<string>(propertyNames.Count);
-                    for (int i = 0; i < propertyNames.Count; i++)
-                        propertyTypes.Add(csv.GetField(i)?.Trim() ?? "string");
-                }
-
-                if (propertyNames.Count != propertyTypes.Count)
-                {
-                    Debug.LogWarning($"[警告] 文件 {file} 属性名和类型数量不一致。");
-                    continue;
-                }
-
-                string className = ReadConfEditorUtil.ToCamelUpper(Path.GetFileNameWithoutExtension(file));
-                string classDef = $"[MemoryPackable]\npublic partial class {className}\n{{\n";
-
-                List<GenCodeProp> props = new();
-                for (int i = 0; i < propertyNames.Count; i++)
-                {
-                    string propName = ReadConfEditorUtil.ToCamelLower(propertyNames[i]);
-                    string propType = MapCsvTypeToCSharpType(propertyTypes[i]);
-                    classDef += $"    public {propType} {propName};\n";
-                    props.Add(new GenCodeProp { name = propName, propType = propType });
-                }
-
-                classDef += "}\n\n";
-
-                string classFieldName = char.ToLower(className[0]) + className[1..];
-                fieldStr += $"    public {className}[] {classFieldName};\n";
-                defStr += classDef;
-
-                // 收集到 folderClasses
-                string folderName = Path.GetFileName(Path.GetDirectoryName(file));
+                string folderName = Path.GetFileName(Path.GetDirectoryName(c.FilePath));
                 if (!folderClasses.TryGetValue(folderName, out var list))
                 {
                     list = new List<(string, string)>();
                     folderClasses[folderName] = list;
                 }
-
-                list.Add((className, classFieldName));
-
-                result.classes.Add(new ClassContent
-                {
-                    className = className,
-                    fileName = className,
-                    FilePath = file.Replace("/", "\\"),
-                    classDef = classDef,
-                    props = props,
-                    keyPriorities = keyPriorities, // ★ 第二行优先级
-                });
+                list.Add((c.className, classFieldName));
             }
 
-            #endregion
+            fieldStr += "}\n\n";
+            codeStr = tip + codeStr + fieldStr + defStr;
 
-            #region 解析 Excel（含 .xlsx / .xls）
-
-            foreach (string file in excelFiles.Concat(xlsFiles))
-            {
-                Debug.Log("[配置表][Editor] " + file);
-
-                using (var stream = File.Open(file, FileMode.Open, FileAccess.Read))
-                using (var reader = ExcelReaderFactory.CreateReader(stream))
-                {
-                    do
-                    {
-                        string sheetName = reader.Name;
-
-                        List<string> propertyNames = new();
-                        List<string> propertyTypes = new(); // 第3行：类型
-                        List<int?> keyPriorities = new(); // 第2行：优先级
-
-                        bool gotHeader = false;
-                        bool gotPriority = false;
-                        bool gotType = false;
-
-                        while (reader.Read())
-                        {
-                            if (!gotHeader)
-                            {
-                                for (int i = 0; i < reader.FieldCount; i++)
-                                    propertyNames.Add(reader.GetString(i)?.Trim() ?? string.Empty);
-                                gotHeader = true;
-                                continue;
-                            }
-
-                            if (!gotPriority)
-                            {
-                                keyPriorities = ParsePriorityRow(
-                                    propertyNames.Count,
-                                    i => reader.IsDBNull(i) ? "" : reader.GetValue(i)?.ToString()
-                                );
-                                gotPriority = true;
-                                continue;
-                            }
-
-                            if (!gotType)
-                            {
-                                for (int i = 0; i < reader.FieldCount; i++)
-                                    propertyTypes.Add(reader.GetString(i)?.Trim() ?? "string");
-                                gotType = true;
-                                break; // 代码生成阶段只需前三行
-                            }
-                        }
-
-                        if (propertyNames.Count != propertyTypes.Count)
-                        {
-                            Debug.LogWarning($"[警告] 文件 {file} 的工作表 {sheetName} 属性名和类型数量不一致。");
-                            continue;
-                        }
-
-                        string className = ReadConfEditorUtil.ToCamelUpper(sheetName);
-                        string classDef = $"[MemoryPackable]\npublic partial class {className}\n{{\n";
-
-                        List<GenCodeProp> props = new();
-                        for (int i = 0; i < propertyNames.Count; i++)
-                        {
-                            string propName = ReadConfEditorUtil.ToCamelLower(propertyNames[i]);
-                            string propType = MapCsvTypeToCSharpType(propertyTypes[i]);
-                            classDef += $"    public {propType} {propName};\n";
-                            props.Add(new GenCodeProp { name = propName, propType = propType });
-                        }
-
-                        classDef += "}\n\n";
-
-                        string classFieldName = char.ToLower(className[0]) + className[1..];
-                        fieldStr += $"    public {className}[] {classFieldName};\n";
-                        defStr += classDef;
-
-                        // 收集到 folderClasses
-                        string folderName = Path.GetFileName(Path.GetDirectoryName(file));
-                        if (!folderClasses.TryGetValue(folderName, out var list))
-                        {
-                            list = new List<(string, string)>();
-                            folderClasses[folderName] = list;
-                        }
-
-                        list.Add((className, classFieldName));
-
-                        result.classes.Add(new ClassContent
-                        {
-                            className = className,
-                            fileName = className,
-                            FilePath = file.Replace("/", "\\"),
-                            classDef = classDef,
-                            props = props,
-                            keyPriorities = keyPriorities, // ★
-                        });
-                    } while (reader.NextResult()); // 下一子表
-                }
-            }
-
-            #endregion
-
-            // 写 ConfData.cs
-            codeStr = tip + codeStr + (fieldStr + "}\n\n" + defStr);
             File.WriteAllText(Application.dataPath + ResEditorConfig.ConfData_Path, codeStr, Encoding.UTF8);
             Debug.Log("[配置表][Editor] ConfData.cs 生成完成");
 
-            // 生成 RacastSet（含优先级多层字典）
-            DoGenRacastSet(folderClasses, result.classes);
+            // 生成 RacastSet（根据 schema 的 pk_order 生成多层索引）
+            DoGenRacastSet(folderClasses, content.classes);
 
-            EditorUtility.DisplayDialog(
-                "配置表生成",
-                "所有配置表及 RacastSet 已生成完成！",
-                "确定"
-            );
+            return content;
+        }
+
+        // ======= 外部入口：仅扫描（用于编译后重建映射再读数据） =======
+        public static GenCodeContent ScanOnly(string side = "C") => BuildGenCodeContent(side);
+
+        // ======= 读取文件 + schema，产出 GenCodeContent（核心） =======
+        private static GenCodeContent BuildGenCodeContent(string side = "C")
+        {
+            side = NormalizeSide(side);
+
+            string root = Application.dataPath + ResEditorConfig.Config_Path;
+            string[] csvFiles   = Directory.GetFiles(root, "*.csv",  SearchOption.AllDirectories);
+            string[] xlsxFiles  = Directory.GetFiles(root, "*.xlsx", SearchOption.AllDirectories);
+            string[] xlsFiles   = Directory.GetFiles(root, "*.xls",  SearchOption.AllDirectories);
+
+            GenCodeContent result = new() { classes = new List<ClassContent>() };
+
+            // ---------- CSV：首行表头 + schema（表级侧别过滤；列按 schema 顺序/存在性） ----------
+            foreach (string file in csvFiles)
+            {
+                var headerSet = ReadCsvHeaderSet(file);
+                if (headerSet.Count == 0) { Debug.LogWarning($"[警告] CSV 无表头：{file}"); continue; }
+
+                var sp = SchemaPathFor(file);
+                if (!File.Exists(sp)) { Debug.LogWarning($"[警告] 缺少 schema：{sp}"); continue; }
+                var ts = ReadJson<TableSchema>(sp) ?? new TableSchema();
+
+                var tableSide = ResolveSide(ts.table_properties, "ALL");
+                if (!MatchesSide(tableSide, side))
+                {
+                    Debug.Log($"[Filter] CSV {Path.GetFileName(file)} cs={tableSide} side={side} => SKIP");
+                    continue;
+                }
+
+                var orderedCols = (ts.columns ?? new()).Select((c, i) => (c, i))
+                    .OrderBy(x => x.c.col_sort ?? x.i)
+                    .Select(x => x.c);
+
+                var props = new List<GenCodeProp>();
+                var keyPriorities = new List<int?>();
+
+                var className = ReadConfEditorUtil.ToCamelUpper(Path.GetFileNameWithoutExtension(file));
+                var classDef  = new StringBuilder().AppendLine("[MemoryPackable]").AppendLine($"public partial class {className}").AppendLine("{");
+
+                foreach (var col in orderedCols)
+                {
+                    string nameLower = ReadConfEditorUtil.ToCamelLower(col.col_name ?? "");
+                    if (!headerSet.Contains(nameLower))
+                    {
+                        Debug.Log($"[Skip] CSV {Path.GetFileName(file)} 列 '{col.col_name}' 不在表头中");
+                        continue;
+                    }
+                    string csharpType = MapCsvTypeToCSharpType(col.value_type);
+                    classDef.AppendLine($"    public {csharpType} {nameLower};");
+                    props.Add(new GenCodeProp { name = nameLower, propType = csharpType });
+                    keyPriorities.Add(col.pk_order.HasValue && col.pk_order.Value > 0 ? col.pk_order : null);
+                }
+
+                classDef.AppendLine("}").AppendLine();
+
+                if (props.Count == 0) { Debug.LogWarning($"[警告] CSV {file} 过滤后无列"); continue; }
+
+                result.classes.Add(new ClassContent
+                {
+                    className     = className,
+                    fileName      = className,
+                    FilePath      = file.Replace("/", "\\"),
+                    classDef      = classDef.ToString(),
+                    props         = props,
+                    keyPriorities = keyPriorities
+                });
+            }
+
+            // ---------- Excel：每个 sheet 一个类；只读首行表头；按 workbook schema ----------
+            foreach (string file in xlsxFiles.Concat(xlsFiles))
+            {
+                var sp = SchemaPathFor(file);
+                if (!File.Exists(sp)) { Debug.LogWarning($"[警告] 缺少 workbook schema：{sp}"); continue; }
+                var wb = ReadJson<WorkbookSchema>(sp) ?? new WorkbookSchema();
+
+                using var stream = File.Open(file, FileMode.Open, FileAccess.Read);
+                using var reader = ExcelReaderFactory.CreateReader(stream);
+
+                do
+                {
+                    string sheetName = reader.Name;
+                    var sheetSch = wb.sheets?.FirstOrDefault(s =>
+                        s.sheet_name.Equals(sheetName, StringComparison.OrdinalIgnoreCase));
+                    if (sheetSch == null)
+                    {
+                        Debug.LogWarning($"[警告] {Path.GetFileName(file)} 中的工作表 '{sheetName}' 不在 schema 中，跳过");
+                        continue;
+                    }
+
+                    // 读首行表头
+                    var headerSet = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                    if (reader.Read())
+                    {
+                        for (int i = 0; i < reader.FieldCount; i++)
+                            headerSet.Add(ReadConfEditorUtil.ToCamelLower(reader.GetValue(i)?.ToString()?.Trim() ?? string.Empty));
+                    }
+                    if (headerSet.Count == 0)
+                    {
+                        Debug.LogWarning($"[警告] {Path.GetFileName(file)}/{sheetName} 无表头，跳过");
+                        continue;
+                    }
+
+                    // 表/Sheet 级侧别过滤（列不额外覆盖）
+                    var sheetSide = ResolveSide(sheetSch.sheet_properties, "ALL");
+                    if (!MatchesSide(sheetSide, side))
+                    {
+                        Debug.Log($"[Filter] XLSX {Path.GetFileName(file)}/{sheetName} cs={sheetSide} side={side} => SKIP");
+                        continue;
+                    }
+
+                    var orderedCols = (sheetSch.columns ?? new()).Select((c, i) => (c, i))
+                        .OrderBy(x => x.c.col_sort ?? x.i)
+                        .Select(x => x.c);
+
+                    var props = new List<GenCodeProp>();
+                    var keyPriorities = new List<int?>();
+
+                    string className = ReadConfEditorUtil.ToCamelUpper(sheetName);
+                    var classDef = new StringBuilder().AppendLine("[MemoryPackable]").AppendLine($"public partial class {className}").AppendLine("{");
+
+                    foreach (var col in orderedCols)
+                    {
+                        string nameLower = ReadConfEditorUtil.ToCamelLower(col.col_name ?? "");
+                        if (!headerSet.Contains(nameLower))
+                        {
+                            Debug.Log($"[Skip] XLSX {Path.GetFileName(file)}/{sheetName} 列 '{col.col_name}' 不在表头中");
+                            continue;
+                        }
+                        string csharpType = MapCsvTypeToCSharpType(col.value_type);
+                        classDef.AppendLine($"    public {csharpType} {nameLower};");
+                        props.Add(new GenCodeProp { name = nameLower, propType = csharpType });
+                        keyPriorities.Add(col.pk_order.HasValue && col.pk_order.Value > 0 ? col.pk_order : null);
+                    }
+
+                    classDef.AppendLine("}").AppendLine();
+
+                    if (props.Count == 0)
+                    {
+                        Debug.LogWarning($"[警告] Excel {file}/{sheetName} 过滤后无列");
+                        continue;
+                    }
+
+                    result.classes.Add(new ClassContent
+                    {
+                        className     = className,
+                        fileName      = className,
+                        FilePath      = file.Replace("/", "\\"),
+                        classDef      = classDef.ToString(),
+                        props         = props,
+                        keyPriorities = keyPriorities
+                    });
+
+                } while (reader.NextResult());
+            }
 
             return result;
         }
 
-        // 解析“优先级行”：整数 → 优先级；空/非法 → null
-        private static List<int?> ParsePriorityRow(int count, Func<int, string> getter)
+        // ====== CSV/Excel 表头读取（只读第一行） ======
+        private static HashSet<string> ReadCsvHeaderSet(string file)
         {
-            var pri = new List<int?>(count);
-            for (int i = 0; i < count; i++)
+            var set = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var config = new CsvConfiguration(CultureInfo.InvariantCulture)
             {
-                var cell = getter(i);
-                if (string.IsNullOrWhiteSpace(cell))
-                {
-                    pri.Add(null);
-                    continue;
-                }
-
-                if (int.TryParse(cell.Trim(), out int p) && p > 0) pri.Add(p);
-                else pri.Add(null);
-            }
-
-            return pri;
-        }
-
-        private static string MapCsvTypeToCSharpType(string csvType)
-        {
-            return csvType switch
-            {
-                "int" => "int",
-                "string" => "string",
-                "long" => "long",
-                "int[]" => "int[]",
-                "float" => "float",
-                "double" => "double",
-                "bool" => "bool",
-                "List<int>" => "List<int>",
-                _ => "string",
+                HasHeaderRecord = true,
+                Delimiter = ",",
+                TrimOptions = TrimOptions.None,
+                PrepareHeaderForMatch = args => args.Header.Trim(),
+                BadDataFound = null
             };
+            using var reader = new StreamReader(file);
+            using var csv = new CsvReader(reader, config);
+            if (!csv.Read() || !csv.ReadHeader()) return set;
+            foreach (var h in csv.HeaderRecord)
+                set.Add(ReadConfEditorUtil.ToCamelLower(h));
+            return set;
         }
 
-        // 生成 RacastSet：类 + 双文件（.cs 覆盖 / .Logic.cs 首创） + 按第二行优先级产出多层字典
+        // ====== RacastSet 生成（保持你原来的风格） ======
         private static void DoGenRacastSet(
             Dictionary<string, List<(string className, string classFieldName)>> folderClasses,
             List<ClassContent> allClasses)
@@ -292,16 +244,14 @@ namespace ReadConf
             string outDir = Application.dataPath + ResEditorConfig.Racast_Path;
             Directory.CreateDirectory(outDir);
 
-            // className -> meta
             var meta = allClasses.ToDictionary(c => c.className, c => c);
 
             foreach (var kv in folderClasses)
             {
-                string folderName = kv.Key; // 如 "Buff" / "Item" / "Mission"
+                string folderName = string.IsNullOrEmpty(kv.Key) ? "Root" : kv.Key;
                 var classes = kv.Value;
                 string typeName = $"{folderName}RacastSet";
 
-                // 每个 RacastSet 独立子目录
                 string setDir = Path.Combine(outDir, typeName);
                 Directory.CreateDirectory(setDir);
 
@@ -311,8 +261,6 @@ namespace ReadConf
                 sb.AppendLine();
                 sb.AppendLine($"public sealed partial class {typeName} : IRacastSet");
                 sb.AppendLine("{");
-
-                // 字段：仅按优先级链生成，字段名固定 {ClassName}Ct
                 foreach (var (className, _) in classes)
                 {
                     var m = meta[className];
@@ -322,10 +270,8 @@ namespace ReadConf
                         sb.AppendLine($"    // {className}: 未配置优先级，未生成索引字段");
                         continue;
                     }
-
                     sb.AppendLine(EmitIndexFieldDeclCt(className, m.props, chain));
                 }
-
                 sb.AppendLine();
                 sb.AppendLine($"    public {typeName}(ConfData data)");
                 sb.AppendLine("    {");
@@ -333,12 +279,9 @@ namespace ReadConf
                 {
                     var m = meta[className];
                     var chain = ExtractKeyChain(m);
-                    if (chain.Count == 0) continue; // 无优先级：不生成
-
-                    // 为 {ClassName}Ct 赋值（嵌套字典）
+                    if (chain.Count == 0) continue;
                     sb.AppendLine(EmitIndexCtorCt(className, fieldName, m.props, chain));
                 }
-
                 sb.AppendLine("        OnAfterInit();");
                 sb.AppendLine("    }");
                 sb.AppendLine();
@@ -346,12 +289,9 @@ namespace ReadConf
                 sb.AppendLine("    partial void OnAfterInit();");
                 sb.AppendLine("}");
 
-                // 写入自动生成文件（覆盖）
                 string autoPath = Path.Combine(setDir, $"{typeName}.cs");
                 File.WriteAllText(autoPath, sb.ToString(), Encoding.UTF8);
-                Debug.Log($"[配置表][Editor] 生成 {typeName}/{typeName}.cs 完成（已覆盖）");
 
-                // 首次生成逻辑文件（不覆盖）
                 string logicPath = Path.Combine(setDir, $"{typeName}.Logic.cs");
                 if (!File.Exists(logicPath))
                 {
@@ -368,48 +308,33 @@ namespace ReadConf
                     sbLogic.AppendLine("    }");
                     sbLogic.AppendLine("}");
                     File.WriteAllText(logicPath, sbLogic.ToString(), Encoding.UTF8);
-                    Debug.Log($"[配置表][Editor] 创建 {typeName}/{typeName}.Logic.cs（首次生成）");
-                }
-                else
-                {
-                    Debug.Log($"[配置表][Editor] 保留 {typeName}/{typeName}.Logic.cs（已存在，不覆盖）");
                 }
             }
 
-            // ====== 本地帮助函数（保持与之前一致的优先级提取）======
+            // 本地小工具
             static List<string> ExtractKeyChain(ClassContent c)
             {
                 var result = new List<string>();
                 if (c.keyPriorities == null || c.keyPriorities.Count == 0) return result;
-
                 var pairs = c.props.Zip(c.keyPriorities, (p, pr) => (p.name, pr))
                     .Where(t => t.pr.HasValue && t.pr.Value > 0)
                     .OrderBy(t => t.pr!.Value)
                     .ToList();
-
                 foreach (var (name, _) in pairs) result.Add(name);
                 return result;
             }
-
-            // 声明：public Dictionary<K1, Dictionary<K2, ... , T>> {ClassName}Ct { get; private set; }
             static string EmitIndexFieldDeclCt(string className, List<GenCodeProp> props, List<string> keys)
             {
                 string KeyType(int i) => props.First(p => p.name == keys[i]).propType;
-
                 string TailType(int i) => (i == keys.Count - 1)
                     ? className
                     : $"Dictionary<{KeyType(i + 1)}, {TailType(i + 1)}>";
-
                 return $"    public Dictionary<{KeyType(0)}, {TailType(0)}> {className}Ct {{ get; private set; }}";
             }
-
-            // 赋值：{ClassName}Ct = data.field ...（根据 keys 构造嵌套 GroupBy / ToDictionary）
-            static string EmitIndexCtorCt(string className, string fieldName, List<GenCodeProp> props,
-                List<string> keys)
+            static string EmitIndexCtorCt(string className, string fieldName, List<GenCodeProp> props, List<string> keys)
             {
                 if (keys.Count == 1)
                     return $"        {className}Ct = data.{fieldName}.ToDictionary(e => e.{keys[0]}, e => e);";
-
                 var sb = new StringBuilder();
                 sb.Append($"        {className}Ct = data.{fieldName}.GroupBy(e => e.{keys[0]})");
                 for (int i = 0; i < keys.Count - 2; i++)
@@ -418,33 +343,140 @@ namespace ReadConf
                     sb.AppendLine();
                     sb.Append(new string(' ', 8));
                 }
-
                 int last = keys.Count - 2;
-                sb.Append(
-                    $".ToDictionary(g{last} => g{last}.Key, g{last} => g{last}.ToDictionary(e => e.{keys.Last()}, e => e));");
+                sb.Append($".ToDictionary(g{last} => g{last}.Key, g{last} => g{last}.ToDictionary(e => e.{keys.Last()}, e => e));");
                 return sb.ToString();
             }
         }
-    }
 
-    public class GenCodeProp
-    {
-        public string name;
-        public string propType;
-    }
+        // ====== 类型映射（完全由 schema value_type 决定） ======
+        private static string MapCsvTypeToCSharpType(string csvType)
+        {
+            var t = (csvType ?? "").Trim().ToLowerInvariant();
+            return t switch
+            {
+                "int" or "int32" or "i32"                 => "int",
+                "long" or "int64" or "i64"                => "long",
+                "float" or "single" or "float32" or "f32" => "float",
+                "double" or "float64" or "f64"            => "double",
+                "bool" or "boolean"                       => "bool",
+                "int[]" or "int32[]" or "i32[]"           => "int[]",
+                "list<int>" or "list<int32>" or "int list"=> "List<int>",
+                _                                          => "string",
+            };
+        }
 
-    public class ClassContent
-    {
-        public string className;
-        public string fileName;
-        public string FilePath;
-        public string classDef;
-        public List<GenCodeProp> props;
-        public List<int?> keyPriorities; // ★ 第二行优先级（null=不参与；1/2/3…）
-    }
+        // ====== schema & 侧别工具 ======
+        private static string SchemaPathFor(string tablePath) => tablePath + ".schema.json";
+        private static T? ReadJson<T>(string path)
+        {
+            try
+            {
+                var json = File.ReadAllText(path, Encoding.UTF8);
+                // Newtonsoft.Json 大小写默认不敏感；这里也可加一些容错设置
+                var settings = new JsonSerializerSettings
+                {
+                    MissingMemberHandling = MissingMemberHandling.Ignore,
+                    NullValueHandling = NullValueHandling.Ignore,
+                    Culture = System.Globalization.CultureInfo.InvariantCulture
+                };
+                return JsonConvert.DeserializeObject<T>(json, settings);
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"[schema] 读取/解析失败：{path}\n{ex}");
+                return default;
+            }
+        }
+        private static string NormalizeSide(string s)
+        {
+            if (string.IsNullOrWhiteSpace(s)) return "ALL";
+            s = s.Trim().ToUpperInvariant();
+            return s is "C" or "S" or "ALL" or "NONE" ? s : "ALL";
+        }
+        private static string ResolveSide(List<SchemaProperty>? props, string fallback = "ALL")
+        {
+            var v = props?.FirstOrDefault(p => string.Equals(p.property_name, "cs_type", StringComparison.OrdinalIgnoreCase))?.property_value;
+            return NormalizeSide(string.IsNullOrWhiteSpace(v) ? fallback : v!);
+        }
+        private static bool MatchesSide(string cs, string target)
+        {
+            cs = NormalizeSide(cs); target = NormalizeSide(target);
+            if (cs == "NONE") return false;
+            if (target == "ALL") return cs != "NONE";
+            return cs == "ALL" || cs == target;
+        }
 
-    public class GenCodeContent
+        // ====== 模型 ======
+        class SchemaProperty { public string property_name { get; set; } = ""; public string property_value { get; set; } = ""; }
+        class ColumnSchema
+        {
+            public string col_name { get; set; } = "";
+            public string value_type { get; set; } = "string";
+            public int?   pk_order { get; set; } = null;
+            public int?   col_sort { get; set; } = null;
+            public List<SchemaProperty> col_properties { get; set; } = new();
+        }
+        class TableSchema
+        {
+            public string table_name { get; set; } = "";
+            public List<ColumnSchema> columns { get; set; } = new();
+            public List<SchemaProperty> table_properties { get; set; } = new();
+        }
+        class SheetSchema
+        {
+            public string sheet_name { get; set; } = "";
+            public List<ColumnSchema> columns { get; set; } = new();
+            public List<SchemaProperty> sheet_properties { get; set; } = new();
+        }
+        class WorkbookSchema
+        {
+            public string workbook_name { get; set; } = "";
+            public List<SheetSchema> sheets { get; set; } = new();
+        }
+
+        // ====== 导出给外部用的数据模型（保持你原样） ======
+        public class GenCodeProp { public string name; public string propType; }
+        public class ClassContent
+        {
+            public string className;
+            public string fileName;
+            public string FilePath;
+            public string classDef;
+            public List<GenCodeProp> props;
+            public List<int?> keyPriorities; // 来自 schema 的 pk_order
+        }
+        public class GenCodeContent { public List<ClassContent> classes; }
+    }
+    
+    public static class ReadConfEditorUtil
     {
-        public List<ClassContent> classes;
+        public static string ToCamelUpper(string str)
+        {
+            string result = "";
+            string[] nameStrs = str.Split("_");
+            for (int i = 0; i < nameStrs.Length; i++)
+            {
+                if (string.IsNullOrEmpty(nameStrs[i])) continue;
+                result += char.ToUpper(nameStrs[i][0]);
+                if (nameStrs[i].Length > 1) result += nameStrs[i][1..];
+            }
+            return result;
+        }
+
+        public static string ToCamelLower(string str)
+        {
+            string result = "";
+            string[] nameStrs = str.Split("_");
+            if (nameStrs.Length == 0) return str;
+            result += nameStrs[0];
+            for (int i = 1; i < nameStrs.Length; i++)
+            {
+                if (string.IsNullOrEmpty(nameStrs[i])) continue;
+                result += char.ToUpper(nameStrs[i][0]);
+                if (nameStrs[i].Length > 1) result += nameStrs[i][1..];
+            }
+            return result;
+        }
     }
 }

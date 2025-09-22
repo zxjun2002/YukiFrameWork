@@ -12,80 +12,145 @@ using UnityEngine;
 
 namespace ReadConf
 {
+    // ===== 编译完成后自动续跑（跨域重载） =====
+    [InitializeOnLoad]
+    static class ConfGenWorkflow
+    {
+        const string PendingKey = "ConfGen.Pending";
+        const string SideKey    = "ConfGen.Side";
+
+        static ConfGenWorkflow()
+        {
+            EditorApplication.update += Tick;
+        }
+
+        static void Tick()
+        {
+            // 没有待处理就退出
+            if (!SessionState.GetBool(PendingKey, false)) return;
+
+            // 编译尚未完成：显示进度条并等待
+            if (EditorApplication.isCompiling)
+            {
+                EditorUtility.DisplayProgressBar("配置表", "等待脚本编译完成...", 0.6f);
+                return;
+            }
+
+            // 编译完成：清理进度条，继续读表
+            EditorUtility.ClearProgressBar();
+
+            var side = SessionState.GetString(SideKey, "C");
+            try
+            {
+                // 重新扫描（不再生成代码），拿到最新映射
+                var content = GenCodeEditor.ScanOnly(side);
+                ReadConfEditor.ReadConfData(content);
+                EditorUtility.DisplayDialog("配置表生成", "代码生成 & 数据导入完成！", "确定");
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError("[配置表] 后续读表失败：" + ex);
+                EditorUtility.DisplayDialog("配置表生成", "后续读表失败，看 Console 日志。", "确定");
+            }
+            finally
+            {
+                SessionState.EraseBool(PendingKey);
+                SessionState.EraseString(SideKey);
+            }
+        }
+
+        public static void BeginWait(string side)
+        {
+            SessionState.SetBool(PendingKey, true);
+            SessionState.SetString(SideKey, string.IsNullOrWhiteSpace(side) ? "C" : side.ToUpperInvariant());
+            EditorUtility.DisplayProgressBar("配置表", "等待脚本编译完成...", 0.3f);
+        }
+    }
+
     public class ReadConfEditor
     {
         [MenuItem("Tool/配置表/配置表本地生成")]
-        public static void ReadConf()
+        public static void ReadConfClient()
         {
-            GenCodeContent content = GenCodeEditor.DoGenConfCode();
-            Debug.Log("代码生成成功");
-            ReadConfData(content);
+            GenerateAndWait("C");
         }
-        
+
+        private static void GenerateAndWait(string side)
+        {
+            try
+            {
+                // 1) 生成代码 & Racast（按 .schema.json + side）
+                GenCodeEditor.DoGenConfCode(side);
+                Debug.Log($"[配置表] 代码生成成功（side={side}）");
+
+                // 2) 标记“待继续”，刷新触发编译；编译完成后 ConfGenWorkflow.Tick 会继续 ReadConfData
+                ConfGenWorkflow.BeginWait(side);
+                AssetDatabase.Refresh(); // 触发编译 & 域重载
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError("[配置表] 生成失败：" + ex);
+                EditorUtility.ClearProgressBar();
+            }
+        }
+
         /// <summary>
-        /// 解析配置文件数据到 ConfData 对象。
-        /// 支持 .csv、.xlsx 和 .xls 文件。
+        /// 解析配置数据到 ConfData（仅在编译完成后调用）
         /// </summary>
-        private static void ReadConfData(GenCodeContent content)
+        public static void ReadConfData(GenCodeEditor.GenCodeContent content)
         {
             ConfData data = new ConfData();
+            var fields = typeof(ConfData).GetFields();
 
-            FieldInfo[] fields = typeof(ConfData).GetFields();
-
-            foreach (FieldInfo field in fields)
+            foreach (var field in fields)
             {
-                Type fieldType = field.FieldType.GetElementType();
-                FieldInfo[] subFields = fieldType.GetFields();
+                Type elemType   = field.FieldType.GetElementType();
+                FieldInfo[] sub = elemType.GetFields();
 
                 string className = char.ToUpper(field.Name[0]) + field.Name[1..];
 
-                // 从生成内容中找到对应的 ClassContent
-                ClassContent cc = content.classes.FirstOrDefault(cc_ => cc_.className == className);
+                var cc = content.classes.FirstOrDefault(c => c.className == className);
                 if (cc == null)
                 {
-                    Debug.LogWarning($"未找到对应的 ClassContent: {className}");
+                    Debug.LogWarning($"未找到匹配 ClassContent：{className}");
                     continue;
                 }
 
                 string filePath = cc.FilePath;
                 try
                 {
-                    List<string> headerNames = new List<string>();
-                    List<object> confList = new List<object>();
+                    var headerNames = new List<string>();
+                    var confList    = new List<object>();
 
-                    // 根据文件类型选择解析方法
-                    if (filePath.EndsWith(".csv"))
+                    if (filePath.EndsWith(".csv", StringComparison.OrdinalIgnoreCase))
                     {
-                        ReadCsvFile(filePath, fieldType, subFields, headerNames, confList);
-                        // 将解析结果赋值给对应的字段
-                        var confArr = Array.CreateInstance(fieldType, confList.Count);
-                        confList.CopyTo((object[])confArr);
-                        field.SetValue(data, confArr);
+                        ReadCsvFile(filePath, elemType, sub, headerNames, confList);
+                        var arr = Array.CreateInstance(elemType, confList.Count);
+                        for (int i = 0; i < confList.Count; i++) arr.SetValue(confList[i], i);
+                        field.SetValue(data, arr);
                     }
-                    else if (filePath.EndsWith(".xlsx") || filePath.EndsWith(".xls"))
+                    else if (filePath.EndsWith(".xlsx", StringComparison.OrdinalIgnoreCase) ||
+                             filePath.EndsWith(".xls",  StringComparison.OrdinalIgnoreCase))
                     {
-                        ReadExcelFile(filePath, content, fieldType, subFields, data, className);
+                        ReadExcelFile(filePath, content, elemType, sub, data, className);
                     }
                     else
                     {
                         Debug.LogWarning($"不支持的文件格式: {filePath}");
-                        continue;
                     }
                 }
                 catch (Exception e)
                 {
-                    Debug.LogError($"解析文件 {filePath} 时出错: {e.Message}");
+                    Debug.LogError($"解析文件 {filePath} 出错: {e.Message}");
                 }
             }
 
-            // 保存解析结果到二进制文件
             FileBytesUtil.SaveConfDataToByteFile(data, ResEditorConfig.ConfsAsset_Path);
+            Debug.Log("[配置表] 数据已序列化到 bytes");
         }
 
-        /// <summary>
-        /// 使用 CsvHelper 解析 CSV 文件。
-        /// </summary>
-        private static void ReadCsvFile(string filePath, Type fieldType, FieldInfo[] subFields,
+        // ========== CSV：只读第一行表头，其余全是数据 ==========
+        private static void ReadCsvFile(string filePath, Type elemType, FieldInfo[] subFields,
             List<string> headerNames, List<object> confList)
         {
             var config = new CsvConfiguration(CultureInfo.InvariantCulture)
@@ -97,220 +162,141 @@ namespace ReadConf
                 BadDataFound = null
             };
 
-            using (var reader = new StreamReader(filePath))
-            using (var csv = new CsvReader(reader, config))
+            using var reader = new StreamReader(filePath);
+            using var csv = new CsvReader(reader, config);
+
+            if (!csv.Read() || !csv.ReadHeader())
             {
-                // 第1行：表头
-                csv.Read();
-                csv.ReadHeader();
-                headerNames.AddRange(csv.HeaderRecord.Select(ReadConfEditorUtil.ToCamelLower));
+                Debug.LogWarning($"[CSV] 缺少表头：{filePath}");
+                return;
+            }
+            headerNames.AddRange(csv.HeaderRecord.Select(ReadConfEditorUtil.ToCamelLower));
 
-                // 第2行：优先级（跳过）
-                if (!csv.Read())
+            // 直接开始读数据（不再有优先级/类型行）
+            while (csv.Read())
+            {
+                var rowObj = Activator.CreateInstance(elemType);
+
+                for (int i = 0; i < subFields.Length; i++)
                 {
-                    Debug.LogWarning($"文件 {filePath} 缺少优先级行，跳过解析");
-                    return;
+                    try
+                    {
+                        string name = subFields[i].Name;
+                        int idx = headerNames.IndexOf(name);
+                        if (idx < 0) continue;
+
+                        string value = csv.GetField(idx);
+                        object val = ConvertValue(value, subFields[i].FieldType);
+                        subFields[i].SetValue(rowObj, val);
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.LogError($"CSV 解析错误: {ex.Message}");
+                    }
                 }
-                // 第3行：类型（跳过）
-                if (!csv.Read())
+                confList.Add(rowObj);
+            }
+        }
+
+        // ========== Excel：只读第一行表头，其余全是数据 ==========
+        private static void ReadExcelFile(string filePath, GenCodeEditor.GenCodeContent content,
+            Type elemType, FieldInfo[] subFields, ConfData data, string currentClassName)
+        {
+            using var stream = File.Open(filePath, FileMode.Open, FileAccess.Read);
+            using var reader = ExcelReaderFactory.CreateReader(stream);
+
+            do
+            {
+                string sheetName = reader.Name;
+                if (ReadConfEditorUtil.ToCamelUpper(sheetName) != currentClassName)
+                    continue;
+
+                var field = typeof(ConfData).GetField(currentClassName,
+                    BindingFlags.IgnoreCase | BindingFlags.Public | BindingFlags.Instance);
+                if (field == null)
                 {
-                    Debug.LogWarning($"文件 {filePath} 缺少类型行，跳过解析");
-                    return;
+                    Debug.LogWarning($"ConfData 中未找到字段: {currentClassName}");
+                    continue;
                 }
 
-                // 从第4行开始：逐行读取数据
-                while (csv.Read())
-                {
-                    var rowObj = Activator.CreateInstance(fieldType);
+                var headerNames = new List<string>();
+                var confList    = new List<object>();
+                bool gotHeader  = false;
 
+                while (reader.Read())
+                {
+                    if (!gotHeader)
+                    {
+                        for (int i = 0; i < reader.FieldCount; i++)
+                            headerNames.Add(ReadConfEditorUtil.ToCamelLower(reader.GetValue(i)?.ToString()?.Trim() ?? string.Empty));
+                        gotHeader = true;
+                        continue;
+                    }
+
+                    var rowObj = Activator.CreateInstance(elemType);
                     for (int i = 0; i < subFields.Length; i++)
                     {
                         try
                         {
-                            string subFieldName = subFields[i].Name;
-                            int fieldIndex = headerNames.IndexOf(subFieldName);
-                            if (fieldIndex < 0) continue;
+                            string name = subFields[i].Name;
+                            int idx = headerNames.IndexOf(name);
+                            if (idx < 0) continue;
 
-                            string value = csv.GetField(fieldIndex);
+                            string? value = reader.IsDBNull(idx) ? null : reader.GetValue(idx)?.ToString();
                             object val = ConvertValue(value, subFields[i].FieldType);
                             subFields[i].SetValue(rowObj, val);
                         }
                         catch (Exception ex)
                         {
-                            Debug.LogError($"CSV 文件解析错误: {ex.Message}");
+                            Debug.LogError($"Excel 解析错误: {ex.Message}");
                         }
                     }
-
                     confList.Add(rowObj);
                 }
-            }
-        }
-        
-        /// <summary>
-        /// 使用 ExcelDataReader 解析 Excel 文件的所有工作表（支持 .xlsx 和 .xls）。
-        /// </summary>
-        private static void ReadExcelFile(string filePath, GenCodeContent content, Type fieldType, FieldInfo[] subFields, ConfData data, string currentClassName)
-        {
-            using (var stream = File.Open(filePath, FileMode.Open, FileAccess.Read))
-            using (var reader = ExcelReaderFactory.CreateReader(stream))
-            {
-                do
-                {
-                    string sheetName = reader.Name;
 
-                    // 找到与当前工作表匹配的类
-                    if (ReadConfEditorUtil.ToCamelUpper(sheetName) != currentClassName)
-                    {
-                        continue;
-                    }
+                var arr = Array.CreateInstance(elemType, confList.Count);
+                for (int i = 0; i < confList.Count; i++) arr.SetValue(confList[i], i);
+                field.SetValue(data, arr);
 
-                    FieldInfo field = typeof(ConfData).GetField(currentClassName, BindingFlags.IgnoreCase | BindingFlags.Public | BindingFlags.Instance);
-                    if (field == null)
-                    {
-                        Debug.LogWarning($"ConfData 中未找到对应字段: {currentClassName}");
-                        continue;
-                    }
-
-                    List<string> headerNames = new List<string>();
-                    List<object> confList = new List<object>();
-
-                    bool isHeader = true;
-                    bool prioritySkipped = false;
-                    bool typeSkipped = false;
-
-                    while (reader.Read())
-                    {
-                        if (isHeader)
-                        {
-                            // 第1行：表头
-                            for (int i = 0; i < reader.FieldCount; i++)
-                            {
-                                headerNames.Add(ReadConfEditorUtil.ToCamelLower(reader.GetString(i)?.Trim() ?? string.Empty));
-                            }
-                            isHeader = false;
-                            continue;
-                        }
-
-                        if (!prioritySkipped) { prioritySkipped = true; continue; } // 第2行：优先级（跳过）
-                        if (!typeSkipped)     { typeSkipped = true;     continue; } // 第3行：类型（跳过）
-
-                        // —— 从这里开始是真实数据行 —— //
-                        var rowObj = Activator.CreateInstance(fieldType);
-
-                        for (int i = 0; i < subFields.Length; i++)
-                        {
-                            try
-                            {
-                                string subFieldName = subFields[i].Name;
-                                int fieldIndex = headerNames.IndexOf(subFieldName);
-                                if (fieldIndex < 0) continue;
-
-                                string value = reader.IsDBNull(fieldIndex) ? null : reader.GetValue(fieldIndex)?.ToString();
-                                object val = ConvertValue(value, subFields[i].FieldType);
-                                subFields[i].SetValue(rowObj, val);
-                            }
-                            catch (Exception ex)
-                            {
-                                Debug.LogError($"Excel 文件解析错误: {ex.Message}");
-                            }
-                        }
-
-                        confList.Add(rowObj);
-                    }
-
-                    // 将解析结果赋值到对应字段
-                    var confArr = Array.CreateInstance(fieldType, confList.Count);
-                    confList.CopyTo((object[])confArr);
-                    field.SetValue(data, confArr);
-                } while (reader.NextResult()); // 切换到下一个工作表
-            }
+            } while (reader.NextResult());
         }
 
-        /// <summary>
-        /// 将字符串值转换为目标类型。
-        /// </summary>
+        // ========== 类型转换 ==========
         private static object ConvertValue(string value, Type targetType)
         {
             if (string.IsNullOrWhiteSpace(value)) return GetDefaultValue(targetType);
 
             try
             {
-                if (targetType == typeof(int))    return int.TryParse(value, out int intVal) ? intVal : 0;
-                if (targetType == typeof(long))   return long.TryParse(value, out long longVal) ? longVal : 0L;
-                if (targetType == typeof(float))  return float.TryParse(value, out float floatVal) ? floatVal : 0f;
-                if (targetType == typeof(double)) return double.TryParse(value, out double doubleVal) ? doubleVal : 0d;
-                if (targetType == typeof(bool))   return bool.TryParse(value, out bool boolVal) ? boolVal : false;
-                if (targetType == typeof(int[]))  return ParseIntArray(value);
+                if (targetType == typeof(int))       return int.TryParse(value, out var v) ? v : 0;
+                if (targetType == typeof(long))      return long.TryParse(value, out var v) ? v : 0L;
+                if (targetType == typeof(float))     return float.TryParse(value, out var v) ? v : 0f;
+                if (targetType == typeof(double))    return double.TryParse(value, out var v) ? v : 0d;
+                if (targetType == typeof(bool))      return bool.TryParse(value, out var v) && v;
+                if (targetType == typeof(int[]))     return ParseIntArray(value);
                 if (targetType == typeof(List<int>)) return ParseIntList(value);
             }
             catch (Exception ex)
             {
                 Debug.LogError($"ConvertValue 错误: {ex.Message}");
             }
-
             return value;
         }
+        private static object GetDefaultValue(Type t) => t.IsValueType ? Activator.CreateInstance(t) : null;
 
-        /// <summary>
-        /// 获取类型的默认值。
-        /// </summary>
-        private static object GetDefaultValue(Type type)
-        {
-            return type.IsValueType ? Activator.CreateInstance(type) : null;
-        }
-
-        /// <summary>
-        /// 解析以逗号分隔的整数数组。
-        /// </summary>
         private static int[] ParseIntArray(string value)
         {
             value = value.Trim();
-            if (value.StartsWith("[") && value.EndsWith("]"))
-            {
-                value = value.Substring(1, value.Length - 2);
-            }
-            return value.Split(',').Select(s => int.TryParse(s.Trim(), out int val) ? val : 0).ToArray();
+            if (value.StartsWith("[") && value.EndsWith("]")) value = value[1..^1];
+            return value.Split(',', StringSplitOptions.RemoveEmptyEntries)
+                        .Select(s => int.TryParse(s.Trim(), out var v) ? v : 0).ToArray();
         }
-
         private static List<int> ParseIntList(string value)
         {
             value = value.Trim();
-            if (value.StartsWith("[") && value.EndsWith("]"))
-            {
-                value = value.Substring(1, value.Length - 2);
-            }
-            return value.Split(',').Select(s => int.TryParse(s.Trim(), out int val) ? val : 0).ToList();
-        }
-    }
-
-    public static class ReadConfEditorUtil
-    {
-        public static string ToCamelUpper(string str)
-        {
-            string result = "";
-            string[] nameStrs = str.Split("_");
-            for (int i = 0; i < nameStrs.Length; i++)
-            {
-                if (string.IsNullOrEmpty(nameStrs[i])) continue;
-                result += char.ToUpper(nameStrs[i][0]);
-                if (nameStrs[i].Length > 1) result += nameStrs[i][1..];
-            }
-            return result;
-        }
-
-        public static string ToCamelLower(string str)
-        {
-            string result = "";
-            string[] nameStrs = str.Split("_");
-            if (nameStrs.Length == 0) return str;
-            result += nameStrs[0];
-            for (int i = 1; i < nameStrs.Length; i++)
-            {
-                if (string.IsNullOrEmpty(nameStrs[i])) continue;
-                result += char.ToUpper(nameStrs[i][0]);
-                if (nameStrs[i].Length > 1) result += nameStrs[i][1..];
-            }
-            return result;
+            if (value.StartsWith("[") && value.EndsWith("]")) value = value[1..^1];
+            return value.Split(',', StringSplitOptions.RemoveEmptyEntries)
+                        .Select(s => int.TryParse(s.Trim(), out var v) ? v : 0).ToList();
         }
     }
 }

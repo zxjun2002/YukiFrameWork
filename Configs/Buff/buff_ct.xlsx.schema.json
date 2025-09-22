@@ -1,0 +1,73 @@
+{
+  "workbook_name": "buff_ct.xlsx",
+  "sheets": [
+    {
+      "sheet_name": "buff_ct",
+      "columns": [
+        {
+          "col_name": "buff_id",
+          "value_type": "int",
+          "pk_order": 1,
+          "primary_key": true,
+          "col_sort": 0,
+          "col_properties": []
+        },
+        {
+          "col_name": "buff_name",
+          "value_type": "string",
+          "pk_order": -1,
+          "primary_key": false,
+          "col_sort": 1,
+          "col_properties": []
+        },
+        {
+          "col_name": "buff_val",
+          "value_type": "float",
+          "pk_order": -1,
+          "primary_key": false,
+          "col_sort": 2,
+          "col_properties": []
+        },
+        {
+          "col_name": "buff_level",
+          "value_type": "int",
+          "pk_order": 2,
+          "primary_key": true,
+          "col_sort": 3,
+          "col_properties": []
+        }
+      ],
+      "sheet_properties": []
+    },
+    {
+      "sheet_name": "effect_ct",
+      "columns": [
+        {
+          "col_name": "id",
+          "value_type": "int",
+          "pk_order": 1,
+          "primary_key": true,
+          "col_sort": 0,
+          "col_properties": []
+        },
+        {
+          "col_name": "effect_name",
+          "value_type": "string",
+          "pk_order": -1,
+          "primary_key": false,
+          "col_sort": 1,
+          "col_properties": []
+        },
+        {
+          "col_name": "effect_val",
+          "value_type": "float",
+          "pk_order": -1,
+          "primary_key": false,
+          "col_sort": 2,
+          "col_properties": []
+        }
+      ],
+      "sheet_properties": []
+    }
+  ]
+}

@@ -1,0 +1,54 @@
+{
+  "table_name": "Item.csv",
+  "columns": [
+    {
+      "col_name": "id",
+      "value_type": "int",
+      "pk_order": 1,
+      "primary_key": true,
+      "col_sort": 0,
+      "col_properties": []
+    },
+    {
+      "col_name": "item_name",
+      "value_type": "string",
+      "pk_order": -1,
+      "primary_key": false,
+      "col_sort": 1,
+      "col_properties": []
+    },
+    {
+      "col_name": "item_pid",
+      "value_type": "long",
+      "pk_order": -1,
+      "primary_key": false,
+      "col_sort": 2,
+      "col_properties": []
+    },
+    {
+      "col_name": "item_json",
+      "value_type": "string",
+      "pk_order": -1,
+      "primary_key": false,
+      "col_sort": 3,
+      "col_properties": []
+    },
+    {
+      "col_name": "item_list",
+      "value_type": "int[]",
+      "pk_order": -1,
+      "primary_key": false,
+      "col_sort": 4,
+      "col_properties": []
+    },
+    {
+      "col_name": "item_test_list",
+      "value_type": "List<int>",
+      "pk_order": -1,
+      "primary_key": false,
+      "col_sort": 5,
+      "col_properties": []
+    }
+  ],
+  "table_properties": []
+}

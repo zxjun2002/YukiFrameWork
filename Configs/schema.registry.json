@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "properties": [
+    {
+      "key": "cs_type",
+      "title": "终端类型",
+      "scope": "column",
+      "kind": "enum",
+      "values": [
+        "ALL",
+        "C",
+        "S"
+      ],
+      "default": "ALL"
+    }
+  ]
+}

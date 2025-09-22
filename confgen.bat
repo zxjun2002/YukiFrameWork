@@ -13,6 +13,13 @@ set OUT_BYTES=.\Assets\ConfigData\Configs\ConfData.bytes
 set OUT_MANIFEST=.\Assets\ConfigData\Configs\ConfManifest.json
 REM ================================================
 
+REM 新增：控制生成端，默认 C（客户端）。可在命令行传 S/ALL/NONE 覆盖
+set "SIDE=C"
+if /I "%~1"=="C"    set "SIDE=C"
+if /I "%~1"=="S"    set "SIDE=S"
+if /I "%~1"=="ALL"  set "SIDE=ALL"
+if /I "%~1"=="NONE" set "SIDE=NONE"
+
 REM 是否生成 Manifest（0=不生成，1=生成）
 set EMIT_MANIFEST=0
 REM 是否开启详细日志（0=关闭，1=开启 -> 追加 --verbose）
@@ -32,8 +39,8 @@ REM 优先用绝对路径，避免 PATH 未刷新
 set TOOL=%USERPROFILE%\.dotnet\tools\yuki-confgen.exe
 IF NOT EXIST "%TOOL%" set TOOL=yuki-confgen
 
-echo [ConfGen] 生成代码与 RacastSet ...
-"%TOOL%" gen --input "%INPUT%" --out-cs "%OUT_CS%" --out-racast "%OUT_RACAST%" %VERBOSE_SWITCH%
+echo [ConfGen] 生成代码与 RacastSet (side=%SIDE%) ...
+"%TOOL%" gen --input "%INPUT%" --out-cs "%OUT_CS%" --out-racast "%OUT_RACAST%" --side %SIDE% %VERBOSE_SWITCH%
 IF ERRORLEVEL 1 goto :fail
 
 echo [ConfGen] 生成 .byte 与清单 ...
@@ -41,12 +48,15 @@ echo [ConfGen] 生成 .byte 与清单 ...
 IF ERRORLEVEL 1 goto :fail
 
 echo [ConfGen] 完成。
+REM 支持把 --nopause 放到第二个参数（第一个参数用来传 SIDE）
 if /I "%~1"=="--nopause" goto :eof
+if /I "%~2"=="--nopause" goto :eof
 pause
 goto :eof
 
 :fail
 echo [ConfGen] 失败，错误码 %ERRORLEVEL%
 if /I "%~1"=="--nopause" exit /b %ERRORLEVEL%
+if /I "%~2"=="--nopause" exit /b %ERRORLEVEL%
 pause
 exit /b %ERRORLEVEL%
