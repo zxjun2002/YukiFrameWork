@@ -10,7 +10,7 @@ public static class ConfGenMenu
     static void RunConfGen()
     {
         var root = Path.GetFullPath(Path.Combine(Application.dataPath, ".."));
-        var bat  = Path.Combine(root, "confgen.bat");
+        var bat  = Path.Combine(root, "Tool", "ConfGen", "confgen.bat");
 
         if (!File.Exists(bat))
         {
