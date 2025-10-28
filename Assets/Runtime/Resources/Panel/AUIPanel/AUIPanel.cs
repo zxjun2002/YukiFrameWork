@@ -13,13 +13,11 @@ namespace Yuki
     {
         [Autowired] RedPointRepository redPointRepository;
         [Autowired] HttpAppService httpAppService;
-        [Autowired] GuideRepository guideRepository;
         [Autowired] IUIManager uiManager;
 
         public float minVelocity = 1000.0f;
         public float maxVelocity = 10000.0f;
         
-        [SerializeField] private UIBeginnerGuideDataList BeginnerGuideDataList;
         List<UIListItemData> TestUIList_ItemDatas = new List<UIListItemData>();//定义列表项数据List
         private ObjectPool<GameObject> pool;
         UIListItemData SetIndexData_Item(int idx)//定义函数,获取下标对应的数据

@@ -41,7 +41,7 @@
         },
         {
             "guid": "23bce2e71c452964e92ea922d7e7ba57",
-            "title": "运行时文件夹",
+            "title": "配置表",
             "comment": "",
             "titleColor": {
                 "r": 1.0,
@@ -50,7 +50,7 @@
                 "a": 1.0
             },
             "createdTimeStamp": 1752743951384,
-            "modifiedTimeStamp": 1752743951384
+            "modifiedTimeStamp": 1761622178893
         },
         {
             "guid": "919c356bae6a5e84bb8bfe460c9610a1",
@@ -64,6 +64,19 @@
             },
             "createdTimeStamp": 1752744397662,
             "modifiedTimeStamp": 1752744397662
+        },
+        {
+            "guid": "430ec12f8a38dc8488ece4290bee6ce1",
+            "title": "运行时文件夹",
+            "comment": "",
+            "titleColor": {
+                "r": 0.4000000059604645,
+                "g": 0.800000011920929,
+                "b": 1.0,
+                "a": 1.0
+            },
+            "createdTimeStamp": 1761622192998,
+            "modifiedTimeStamp": 1761622192998
         }
     ]
 }

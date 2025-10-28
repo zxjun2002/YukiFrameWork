@@ -16,7 +16,6 @@ public class GameSettingMgr : InjectableMonoBehaviour
     [Autowired] private RedPointRepository redPointRepository;
     [Autowired] private IHttpModule httpModule;
     [Autowired] private HttpAppService httpAppService;
-    [Autowired] private GuideRepository guideRepository;
     [SerializeField] private Camera uiCamera;
     BehaviorTreeBuilder builder;
     /// <summary>
@@ -36,7 +35,6 @@ public class GameSettingMgr : InjectableMonoBehaviour
     
     protected override async void OnStart()
     {
-        guideRepository.Init(transform.GetComponent<UIBeginnerGuideManager>());
         deviceAppService.Init();
         eventCenter.AddEventListener(CustomEventType.TestEventWithParam,TestEventWithParam);
         eventCenter.AddEventListener(CustomEventType.TestEventWithoutParam,TestEventWithoutParam);
