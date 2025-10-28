@@ -16,10 +16,9 @@
 12. 基于 Lean Localization 的多语言解决方案
 13. 基于 UnityWebSocket 的长链接通信模块（[UnityWebSocket](https://github.com/psygames/UnityWebSocket?tab=readme-ov-file)）（待开发）
 14. 行为树 AI 自编写架构
-15. 雷火 UX 工具（包括多语言、层级管理器、新手引导模块）——目前主要使用其新手引导模块；多语言模块和层级管理器待定（后续打算移除）
-16. 基于 EnhancedScroller 的混合列表解决方案
-17. 基于 XNode 的节点式可配置新手引导方案（进行中）
-18. 文件夹注释工具（来自 [FolderCommentTool](https://github.com/fenglyu1314/FolderCommentTool)）
+15. 基于 EnhancedScroller 的混合列表解决方案
+16. 基于Behavior Designer的节点式可配置新手引导方案（进行中）
+17. 文件夹注释工具（来自 [FolderCommentTool](https://github.com/fenglyu1314/FolderCommentTool)）
 
 
 #### 软件架构
