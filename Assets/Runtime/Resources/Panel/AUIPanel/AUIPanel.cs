@@ -35,7 +35,20 @@ namespace Yuki
             base.OnShow();
             CheckBtn.onClick.AddListener(CheckBtnCallback);
             //最后写入数据并且赋值
-            // TestUIList_ItemDatas.Clear();
+            TestUIList_ItemDatas.Clear();
+            // for (int i = 0; i < 100; i++)
+            // {
+            //     UIListItemData itemData = new Test_UIListItemData
+            //     {
+            //         Index = i,
+            //         num = i,
+            //         GuideAction = null
+            //     };
+            //     TestUIList_ItemDatas.Add(itemData);
+            // }
+            // TestUIList.SetIndexData = SetIndexData_Item;
+            // TestUIList.SetCount(TestUIList_ItemDatas.Count);
+            
             // for (int i = 0; i < 100; i++)
             // {
             //     UIListItemData itemData = null;
@@ -46,13 +59,7 @@ namespace Yuki
             //             {
             //                 Index = i,
             //                 num = i,
-            //                 GuideAction = async go =>
-            //                 {
-            //                     BeginnerGuideDataList.SetGuideTarget(go);
-            //                     await UniTask.DelayFrame(1);
-            //                     guideRepository.AddGuide(BeginnerGuideDataList);
-            //                     guideRepository.PlayGuide();
-            //                 }
+            //                 GuideAction = null
             //             };
             //             break;
             //         case 1:
@@ -67,12 +74,11 @@ namespace Yuki
             //
             // TestUIListMulti.SetIndexData = SetIndexData_Item;
             // TestUIListMulti.SetCount(TestUIList_ItemDatas.Count);
-            // TestUIList.SetIndexData = SetIndexData_Item;
-            // TestUIList.SetCount(TestUIList_ItemDatas.Count);
+            
             // // await httpAppService.SendHttpReq(new Login_RequestHandler(114514, "Yuki"));
             // redPointRepository.Agg.SetCallback(RedPointKey.Play_LEVEL1,Play_LEVELRedDotCallback);
-            //
-            // 构造数据
+            
+            //构造数据
             List<BaseCellData> data = new List<BaseCellData>
             {
                 new HeaderCellData()
@@ -118,8 +124,8 @@ namespace Yuki
             };
             // 传入数据
             scrollerController.SetData(data);
-            scrollerController.SpinToIndexAsync(2, 2, 2f).Forget();
-            // scrollerController.AddVelocity((UnityEngine.Random.Range(0, 1f) > 0.5f ? 1f : -1f) * UnityEngine.Random.Range(minVelocity, maxVelocity));
+            //scrollerController.SpinToIndexAsync(2, 2, 2f).Forget();
+            //scrollerController.AddVelocity((UnityEngine.Random.Range(0, 1f) > 0.5f ? 1f : -1f) * UnityEngine.Random.Range(minVelocity, maxVelocity));
         }
 
         public override void OnClose()

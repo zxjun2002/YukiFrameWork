@@ -18,6 +18,12 @@ public partial class Test_UIListItem//UI定义
 
 public partial class Test_UIListItem : UIListItem //逻辑定义
 {
+    protected override void OnShow()
+    {
+        base.OnShow();
+        //TODO:比如做一些事件监听
+    }
+
     protected override void ShowData(UIListItemData baseData)
     {
         if (baseData is Test_UIListItemData data)
@@ -28,5 +34,11 @@ public partial class Test_UIListItem : UIListItem //逻辑定义
                 data.GuideAction?.Invoke(gameObject);   
             }
         }
+    }
+    
+    protected override void OnHide()
+    {
+        base.OnHide();
+        //TODO:比如做一些取消事件监听
     }
 }

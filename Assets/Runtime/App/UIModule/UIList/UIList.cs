@@ -176,8 +176,8 @@ public class UIList : MonoBehaviour, LoopScrollPrefabSource, LoopScrollDataSourc
             var itemData = SetIndexData?.Invoke(idx);
             if (itemData != null)
             {
-                listItem.showData.Invoke(itemData);
                 listItem.TryInvokeOnShow();
+                listItem.showData.Invoke(itemData);
             }
             else
             {

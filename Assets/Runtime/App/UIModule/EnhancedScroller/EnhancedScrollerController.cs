@@ -39,8 +39,11 @@ public class EnhancedScrollerController : MonoBehaviour, IEnhancedScrollerDelega
 
     private void OnCellViewWillRecycle(EnhancedScrollerCellView cellView)
     {
-        // 当 cellView 被回收前调用 HideData
-        cellView.HideData();
+        if (cellView != null)
+        {
+            cellView.ExitShow();       // 对应 OnHide：解绑事件等
+            cellView.ResetShowState(); // 下次再用时从“未显示”状态开始
+        }
     }
 
     /// <summary>
@@ -102,7 +105,8 @@ public class EnhancedScrollerController : MonoBehaviour, IEnhancedScrollerDelega
         /* ——————————————————————
            ② 计算“最近的同内容副本”
            —————————————————————— */
-        int currentCell = scroller.GetCellViewIndexAtPosition(scroller.ScrollPosition);
+        float centerPos = scroller.ScrollPosition + scroller.ScrollRectSize * 0.5f;
+        int currentCell = scroller.GetCellViewIndexAtPosition(centerPos);
         int forwardDelta = (targetIndex - (currentCell % cells) + cells) % cells;
         int finalCell    = currentCell + forwardDelta;        // 永远 ≤ 1 圈
 
@@ -145,6 +149,10 @@ public class EnhancedScrollerController : MonoBehaviour, IEnhancedScrollerDelega
         var prefab = GetScrollerView(data);
         if (prefab != null)
         {
+            //从View获取尺寸
+            float viewSize = prefab.CalculateSize(data);
+            if (viewSize > 0) return viewSize;
+            //都拿不到用预制体尺寸
             Rect rect = prefab.GetComponent<RectTransform>().rect;
             return orientation == EnhancedScroller.ScrollDirectionEnum.Horizontal ? rect.width : rect.height;
         }
@@ -156,6 +164,9 @@ public class EnhancedScrollerController : MonoBehaviour, IEnhancedScrollerDelega
     /// <summary>返回单元格视图</summary>
     public EnhancedScrollerCellView GetCellView(EnhancedScroller scroller, int dataIndex, int cellIndex)
     {
+        if (dataList == null || dataList.Count == 0)
+            return null;
+
         // 对 dataIndex 做模运算
         int index = dataList.Count > 0 ? dataIndex % dataList.Count : 0;
         BaseCellData data = dataList[index];
@@ -170,7 +181,12 @@ public class EnhancedScrollerController : MonoBehaviour, IEnhancedScrollerDelega
 
         // 获取单元格对象
         EnhancedScrollerCellView cellView = scroller.GetCellView(prefab);
-        cellView.SetData(data);
+
+        // === 生命周期：Init -> OnShow -> SetData ===
+        cellView.EnsureInit();   // 只执行一次 OnInit
+        cellView.EnterShow();    // 每次从池子出来时执行 OnShow
+        cellView.SetData(data);  // 设置具体数据
+
         return cellView;
     }
     
