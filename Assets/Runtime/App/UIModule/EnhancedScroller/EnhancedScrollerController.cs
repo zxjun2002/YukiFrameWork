@@ -137,6 +137,9 @@ public class EnhancedScrollerController : MonoBehaviour, IEnhancedScrollerDelega
     /// </summary>
     public float GetCellViewSize(EnhancedScroller scroller, int dataIndex)
     {
+        if (dataList == null || dataList.Count == 0)
+            return 0f;
+        
         // 对 dataIndex 进行取模，确保在范围内
         int index = dataList.Count > 0 ? dataIndex % dataList.Count : 0;
         var data = dataList[index];
