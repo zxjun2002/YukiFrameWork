@@ -7,7 +7,7 @@ public class ResEditorConfig
     /// <summary>
     /// 配置表序列化类路径
     /// </summary>
-    public const string ConfData_Path = "/ConfigData/Data/ConfData.cs";
+    public const string ConfData_Path = "/ConfigData/ConfData.cs";
     /// <summary>
     /// 配置表二进制文件路径
     /// </summary>
