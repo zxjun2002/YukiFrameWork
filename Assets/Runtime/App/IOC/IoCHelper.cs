@@ -6,7 +6,7 @@ namespace MIKUFramework.IOC
 
         public static void Initialize()
         {
-            Instance = new MIKUIoC();
+            Instance = new MIKUIoC(new UnityIocLogger());
         }
     }
 }

@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using UnityEngine;
 
 namespace MIKUFramework.IOC
 {
@@ -13,6 +12,10 @@ namespace MIKUFramework.IOC
         // 诊断：记录每个键对应的注册来源类型列表，以及覆盖告警去重
         private readonly Dictionary<Type, List<Type>> _keySources = new Dictionary<Type, List<Type>>();
         private readonly HashSet<Type> _keysOverwritten = new HashSet<Type>();
+        //是否开启检测
+        private readonly bool _enableDiagnostics = false;
+
+        private IMIKULogger Logger;
 
         private void RegisterKey(Type key, object instance, Type componentType)
         {
@@ -21,7 +24,7 @@ namespace MIKUFramework.IOC
             {
                 if (_keysOverwritten.Add(key))
                 {
-                    Debug.LogError(
+                    Logger.Error(
                         $"[IOC] 键 {key.FullName} 被覆盖: {existing.GetType().FullName} -> {componentType.FullName}");
                 }
             }
@@ -41,10 +44,8 @@ namespace MIKUFramework.IOC
 
         private void RunDiagnostics()
         {
-#if !UNITY_EDITOR
             // 非编辑器构建不运行诊断以避免不必要的性能开销
-            return;
-#endif
+            if (!_enableDiagnostics) return;
             // 检测：同一键来源于多个组件类型时给出告警
             foreach (var kv in _keySources)
             {
@@ -53,7 +54,7 @@ namespace MIKUFramework.IOC
                 {
                     var joined = string.Join(", ", types.Select(t => t.FullName));
                     var final = _services.TryGetValue(kv.Key, out var value) ? value?.GetType().FullName : "<null>";
-                    Debug.LogError($"[IOC] 键 {kv.Key.FullName} 绑定了多个组件类型: {joined}。最终使用: {final}");
+                    Logger.Error($"[IOC] 键 {kv.Key.FullName} 绑定了多个组件类型: {joined}。最终使用: {final}");
                 }
             }
 
@@ -69,7 +70,7 @@ namespace MIKUFramework.IOC
                     var serviceType = field.FieldType;
                     if (!_services.ContainsKey(serviceType))
                     {
-                        Debug.LogError(
+                        Logger.Error(
                             $"[IOC] 未找到可注入服务: {type.FullName}.{field.Name} 类型 {serviceType.FullName}。考虑在实现类上使用 [Component] RegisterAs 或调整 RegisterSelf/Interfaces/Naming。");
                     }
                 }
@@ -117,12 +118,12 @@ namespace MIKUFramework.IOC
                     if (candidateTypes.Count > 0)
                     {
                         var candidatesText = string.Join(", ", candidateTypes.Select(ct => ct.FullName));
-                        Debug.LogError(
+                        Logger.Error(
                             $"[IOC] 未注册键 {serviceType.FullName}，但存在实现候选: {candidatesText}。请在实现类上使用 [Component(typeof({serviceType.Name}))] 或开启 RegisterInterfaces。");
                     }
                     else
                     {
-                        Debug.LogError($"[IOC] 未注册键 {serviceType.FullName}（未发现实现候选）。请确保存在标注 [Component] 的实现并正确注册。");
+                        Logger.Error($"[IOC] 未注册键 {serviceType.FullName}（未发现实现候选）。请确保存在标注 [Component] 的实现并正确注册。");
                     }
                 }
             }
@@ -132,12 +133,13 @@ namespace MIKUFramework.IOC
         {
             foreach (var kv in _services)
             {
-                Debug.Log($"[IOC] {kv.Key.FullName} -> {kv.Value?.GetType().FullName}");
+                Logger.Info($"[IOC] {kv.Key.FullName} -> {kv.Value?.GetType().FullName}");
             }
         }
 
-        public MIKUIoC()
+        public MIKUIoC(IMIKULogger logger = null)
         {
+            Logger = logger ?? new ConsoleLogger();
             // 扫描所有程序集中打了Component特性的类
             var types = AppDomain.CurrentDomain.GetAssemblies()
                 .SelectMany(a => a.GetTypes())
@@ -214,7 +216,7 @@ namespace MIKUFramework.IOC
                             }
                             else
                             {
-                                Debug.LogError($"[IOC] {type.FullName} 未实现/继承 {regType.FullName}，忽略该 RegisterAs 类型。");
+                                Logger.Error($"[IOC] {type.FullName} 未实现/继承 {regType.FullName}，忽略该 RegisterAs 类型。");
                             }
                         }
                     }
