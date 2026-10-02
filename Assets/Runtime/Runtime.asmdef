@@ -10,7 +10,8 @@
         "GUID:603cf9f7b75565840aa8cf5576088a59",
         "GUID:218c8d088c76f5f45b9b3de347da2c05",
         "GUID:4a3910c843551914d9022ba84711aa65",
-        "GUID:174b432621f01fb418be26ffc6c90e22"
+        "GUID:174b432621f01fb418be26ffc6c90e22",
+        "Gilzoide.SqliteNet"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

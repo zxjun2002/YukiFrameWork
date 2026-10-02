@@ -1,0 +1,12 @@
+{
+  "name": "com.gilzoide.sqlite-net",
+  "displayName": "SQLite-net",
+  "version": "1.3.2",
+  "description": "SQLite-net for Unity, supports Windows, Linux, macOS, iOS, tvOS, visionOS, Android and WebGL",
+  "homepage": "https://github.com/gilzoide/unity-sqlite-net",
+  "license": "MIT",
+  "author": {
+    "name": "Gil Barbosa Reis"
+  },
+  "unity": "2021.2"
+}
