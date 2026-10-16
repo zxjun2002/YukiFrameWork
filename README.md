@@ -19,7 +19,7 @@
 15. 基于 EnhancedScroller 的混合列表解决方案
 16. 基于Behavior Designer的节点式可配置新手引导方案（进行中）
 17. 文件夹注释工具（来自 [FolderCommentTool](https://github.com/fenglyu1314/FolderCommentTool)）
-18. SQLite / SQLCipher 存档系统：自动建表、对象存取、条件查询、多表事务和密码保护（[使用说明](Docs/SaveSystem.md)）
+18. SQLCipher 单文件加密存档系统：自动建表、对象存取、条件查询、多表事务和密码保护（[使用说明](Docs/SaveSystem.md)）
 
 
 #### 软件架构

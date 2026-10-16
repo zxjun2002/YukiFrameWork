@@ -24,18 +24,18 @@
       "dependencies": {},
       "hash": "8042b29ff87dd5506d7aad72bd6d8d7405985f27"
     },
+    "com.gilzoide.sqlite-net": {
+      "version": "file:com.gilzoide.sqlite-net",
+      "depth": 0,
+      "source": "embedded",
+      "dependencies": {}
+    },
     "com.github-glitchenzo.nugetforunity": {
       "version": "https://github.com/GlitchEnzo/NuGetForUnity.git?path=/src/NuGetForUnity",
       "depth": 0,
       "source": "git",
       "dependencies": {},
       "hash": "69f500fe0ddb26ed95acc3c06c4465b590e05550"
-    },
-    "com.gilzoide.sqlite-net": {
-      "version": "file:com.gilzoide.sqlite-net",
-      "depth": 0,
-      "source": "embedded",
-      "dependencies": {}
     },
     "com.unity.2d.sprite": {
       "version": "1.0.0",

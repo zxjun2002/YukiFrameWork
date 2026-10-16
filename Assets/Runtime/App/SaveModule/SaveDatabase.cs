@@ -15,24 +15,22 @@ namespace Yuki.SaveSystem
         private SQLiteConnection _connection;
 
         public string FilePath { get; }
-        public bool IsEncrypted { get; }
         public bool IsOpen { get { lock (_sync) return _connection != null; } }
 
-        private SaveDatabase(string filePath, bool isEncrypted, SQLiteConnection connection)
+        private SaveDatabase(string filePath, SQLiteConnection connection)
         {
             FilePath = filePath;
-            IsEncrypted = isEncrypted;
             _connection = connection;
         }
 
-        internal static SaveDatabase OpenFile(string filePath, string password)
+        internal static SaveDatabase OpenFile(string filePath)
         {
             SQLiteConnection connection = null;
             try
             {
                 connection = new SQLiteConnection(filePath,
                     SQLiteOpenFlags.ReadWrite | SQLiteOpenFlags.Create | SQLiteOpenFlags.FullMutex);
-                if (password != null) SqlCipherSupport.ApplyKey(connection, password);
+                SqlCipherSupport.ApplyKey(connection);
                 // key 设置成功不代表密码正确；必须先读取 schema，失败时不能创建表或重建文件。
                 connection.ExecuteScalar<int>("SELECT count(*) FROM sqlite_master");
                 connection.Execute("PRAGMA temp_store = MEMORY");
@@ -47,13 +45,13 @@ namespace Yuki.SaveSystem
                     else if (info.FormatVersion != 1)
                         throw new SaveOpenException("不支持此存档格式版本。");
                 });
-                return new SaveDatabase(filePath, password != null, connection);
+                return new SaveDatabase(filePath, connection);
             }
             catch (SQLiteException exception)
             {
                 connection?.Dispose();
                 if (exception.Result == NotADatabase || exception.Result == SQLite3.Result.Corrupt)
-                    throw new SaveOpenException("无法打开存档：密码错误、普通/加密模式不匹配或文件已损坏。原文件已保留。", exception);
+                    throw new SaveOpenException("无法打开存档：密码错误、文件格式不兼容或文件已损坏。原文件已保留。", exception);
                 throw;
             }
             catch
@@ -112,18 +110,6 @@ namespace Yuki.SaveSystem
             {
                 if (connection.IsInTransaction) throw new InvalidOperationException("不支持嵌套 Transaction。");
                 connection.RunInTransaction(() => action(this));
-                return 0;
-            });
-        }
-
-        public void ChangePassword(string newPassword)
-        {
-            SqlCipherSupport.ValidatePassword(newPassword);
-            Use(connection =>
-            {
-                if (!IsEncrypted) throw new InvalidOperationException("普通存档不能直接改密码；请新建加密存档后迁移数据。");
-                if (connection.IsInTransaction) throw new InvalidOperationException("不能在事务中修改存档密码。");
-                SqlCipherSupport.ChangeKey(connection, newPassword);
                 return 0;
             });
         }
