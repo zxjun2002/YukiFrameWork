@@ -2,6 +2,8 @@
 
 `SaveModule` 是数据库管理器，通过框架 IOC 获取。整个游戏固定使用 `Application.persistentDataPath/Saves/Yuki.sqlite3` 一份加密存档，所有 Table 都在这个文件里。路径、文件名和密码不需要业务代码传入。
 
+目前 `GameSettingMgr` 在配置表初始化后调用 `InitSaveData()`，创建 `Player` 和 `InventoryTable` 两张表，并写入一个玩家和三件道具。重复启动只补充缺少的记录，不覆盖已修改的数据。运行场景后，Console 的 `[存档] 文件路径` 日志会显示实际路径；用支持 SQLCipher 的工具选择 SQLCipher 4 默认参数，输入约定密码即可查看。
+
 ```csharp
 using MIKUFramework.IOC;
 using Yuki.SaveSystem;

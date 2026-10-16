@@ -5,12 +5,14 @@ using Domain;
 using MIKUFramework.IOC;
 using UnityEngine;
 using Yuki;
+using Yuki.SaveSystem;
 
 public class GameSettingMgr : InjectableMonoBehaviour
 {
     [Autowired] private IUIManager uiManager;
     [Autowired] private PetRepository petRepository;
     [Autowired] private IConfigTable configTable;
+    [Autowired] private ISaveModule saveModule;
     [Autowired] private IEventCenter eventCenter;
     [Autowired] private DeviceAppService deviceAppService;
     [Autowired] private RedPointRepository redPointRepository;
@@ -40,6 +42,7 @@ public class GameSettingMgr : InjectableMonoBehaviour
         eventCenter.AddEventListener(CustomEventType.TestEventWithoutParam,TestEventWithoutParam);
         string configPath = Path.Combine(Application.dataPath, ResEditorConfig.ConfsAsset_Path);
         configTable.Init(configPath);
+        InitSaveData();
         petRepository.Init();
         redPointRepository.Init();
         httpAppService.Init();
@@ -68,6 +71,34 @@ public class GameSettingMgr : InjectableMonoBehaviour
         }
     }
     
+    private void InitSaveData()
+    {
+        var database = saveModule.Open();
+        var players = database.Table<Player>();
+        var inventory = database.Table<InventoryTable>();
+
+        database.Transaction(_ =>
+        {
+            // 只补充缺少的示例记录，重复启动不会覆盖已修改的数据。
+            if (players.Find(1) == null)
+                players.Save(new Player { Id = 1, Name = "Yuki", Level = 5, Gold = 1000 });
+
+            var items = new[]
+            {
+                new InventoryTable { Id = 1, PlayerId = 1, ItemId = 1001, Name = "生命药水", Count = 5 },
+                new InventoryTable { Id = 2, PlayerId = 1, ItemId = 1002, Name = "魔法药水", Count = 3 },
+                new InventoryTable { Id = 3, PlayerId = 1, ItemId = 1003, Name = "铁剑", Count = 1 }
+            };
+            foreach (var item in items)
+                if (inventory.Find(item.Id) == null) inventory.Save(item);
+        });
+
+        var player = players.Find(1);
+        GameLogger.LogCyan($"[存档] 文件路径：{database.FilePath}");
+        GameLogger.Log($"[存档] Player：{player.Name}，等级 {player.Level}，金币 {player.Gold}");
+        GameLogger.Log($"[存档] InventoryTable：{inventory.Count()} 条记录");
+    }
+
     private void TestEventWithParam(BaseEventData eventData)
     {
         if (eventData is StringEventData data)
