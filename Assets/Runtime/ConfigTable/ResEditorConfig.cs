@@ -1,5 +1,6 @@
 public class ResEditorConfig 
 {
+    public const string ConfsAddress = "Config/ConfData";
     /// <summary>
     /// 配置表路径
     /// </summary>

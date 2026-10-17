@@ -1,0 +1,9 @@
+{
+    "name": "Yuki.Editor",
+    "references": [
+        "Main", "Runtime", "Config", "UniTask", "Unity.TextMeshPro", "Unity.ugui",
+        "Unity.Addressables", "Unity.ResourceManager", "Unity.Addressables.Editor",
+        "HybridCLR.Editor", "Gilzoide.SqliteNet"
+    ],
+    "includePlatforms": ["Editor"]
+}

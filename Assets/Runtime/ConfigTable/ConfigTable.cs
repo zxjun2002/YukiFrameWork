@@ -1,6 +1,10 @@
 using System;
 using System.Collections.Generic;
 using MIKUFramework.IOC;
+using Cysharp.Threading.Tasks;
+using MemoryPack;
+using UnityEngine;
+using UnityEngine.AddressableAssets;
 
 [Component]
 public class ConfigTable: IConfigTable
@@ -15,7 +19,19 @@ public class ConfigTable: IConfigTable
 
     public void Init(string url)
     {
-        confs = FileBytesUtil.LoadConfFromBinary<ConfData>(url);
+        Initialize(FileBytesUtil.LoadConfFromBinary<ConfData>(url));
+    }
+
+    public async UniTask InitAsync(string address)
+    {
+        var handle = Addressables.LoadAssetAsync<TextAsset>(address);
+        try { Initialize(MemoryPackSerializer.Deserialize<ConfData>((await handle).bytes)); }
+        finally { if (handle.IsValid()) Addressables.Release(handle); }
+    }
+
+    private void Initialize(ConfData data)
+    {
+        confs = data ?? throw new InvalidOperationException("配置表反序列化结果为空。");
         //TODO：新增配置表需加入racastSets中
         racastSets = new Dictionary<Type, Lazy<IRacastSet>>
         {

@@ -1,0 +1,4 @@
+<linker>
+  <!-- IoC 使用反射创建服务、注入字段，热更业务还会调用主程序集的通用 API。 -->
+  <assembly fullname="Main" preserve="all" />
+</linker>

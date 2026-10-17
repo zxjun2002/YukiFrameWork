@@ -7,7 +7,6 @@ using Cysharp.Threading.Tasks;
 using Newtonsoft.Json;
 using UnityEngine;
 using UnityEngine.Networking;
-using Yuki;
 
 namespace MCRogue
 {
@@ -23,7 +22,7 @@ namespace MCRogue
         public long GetServerTimeAt() => _baseServerTimeAt + _serverTimeTimer.ElapsedMilliseconds;
 
         // PUT 请求（带重试）
-        public async UniTask<T> Request_Put<T>(int gameReqType, string json) where T : List<GameBase_Rsp>
+        public async UniTask<T> Request_Put<T>(int gameReqType, string json)
         {
             var requestUrl = $"{Url}/game";
             if (isRequestInProgress)
@@ -45,7 +44,7 @@ namespace MCRogue
         }
 
         // PUT 请求（无重试）
-        public async UniTask<T> Request_Put_Async<T>(int gameReqType, string json) where T : List<GameBase_Rsp>
+        public async UniTask<T> Request_Put_Async<T>(int gameReqType, string json)
         {
             var requestUrl = $"{Url}/game";
             var headers = CreateGameHeaders(gameReqType);

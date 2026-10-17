@@ -2,23 +2,16 @@
     "name": "Runtime",
     "rootNamespace": "",
     "references": [
-        "GUID:9619b3145dfce7148972f2806e68e3e1",
-        "GUID:f51ebe6a0ceec4240a699833d6309b23",
-        "GUID:6055be8ebefd69e48b49212b09b47b2f",
-        "GUID:8621d9949b0c96543ac733223ddc6f3c",
-        "GUID:5c01796d064528144a599661eaab93a6",
-        "GUID:603cf9f7b75565840aa8cf5576088a59",
-        "GUID:218c8d088c76f5f45b9b3de347da2c05",
-        "GUID:4a3910c843551914d9022ba84711aa65",
-        "GUID:174b432621f01fb418be26ffc6c90e22",
-        "Gilzoide.SqliteNet"
+        "Main", "Config", "UniTask", "UniTask.Linq", "UniTask.Addressables",
+        "Unity.TextMeshPro", "Unity.ugui", "LeanLocalization",
+        "LoopScrollRect.Runtime", "Unity.Addressables", "Unity.ResourceManager", "Gilzoide.SqliteNet"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
     "allowUnsafeCode": false,
     "overrideReferences": false,
     "precompiledReferences": [],
-    "autoReferenced": true,
+    "autoReferenced": false,
     "defineConstraints": [],
     "versionDefines": [],
     "noEngineReferences": false

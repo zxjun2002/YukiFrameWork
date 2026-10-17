@@ -1,4 +1,3 @@
-using System.IO;
 using Cysharp.Threading.Tasks;
 using Cysharp.Threading.Tasks.Linq;
 using Domain;
@@ -20,28 +19,24 @@ public class GameSettingMgr : InjectableMonoBehaviour
     [Autowired] private HttpAppService httpAppService;
     [SerializeField] private Camera uiCamera;
     BehaviorTreeBuilder builder;
-    /// <summary>
-    /// 这是一个Unity特有的属性，用于指定Initialize方法作为运行时初始化方法，
-    /// 在场景加载之前执行。这意味着，无论场景如何改变，Initialize方法都会在场景加载之前被调用一次。
-    /// </summary>
-    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
-    private static void Initialize()
-    {
-        IoCHelper.Initialize();
-    }
     
     private void Awake()
     {
+        // 首场景已加载热更程序集，进入业务场景后再初始化框架服务。
+        IoCHelper.Initialize(typeof(IoCHelper).Assembly, typeof(GameSettingMgr).Assembly, typeof(ConfData).Assembly);
         builder = new BehaviorTreeBuilder();
     }
     
-    protected override async void OnStart()
+    protected override void OnStart() => RunAsync().Forget();
+
+    private async UniTask RunAsync()
     {
+        var cancellationToken = this.GetCancellationTokenOnDestroy();
         deviceAppService.Init();
         eventCenter.AddEventListener(CustomEventType.TestEventWithParam,TestEventWithParam);
         eventCenter.AddEventListener(CustomEventType.TestEventWithoutParam,TestEventWithoutParam);
-        string configPath = Path.Combine(Application.dataPath, ResEditorConfig.ConfsAsset_Path);
-        configTable.Init(configPath);
+        await configTable.InitAsync(ResEditorConfig.ConfsAddress);
+        cancellationToken.ThrowIfCancellationRequested();
         InitSaveData();
         petRepository.Init();
         redPointRepository.Init();
@@ -52,11 +47,11 @@ public class GameSettingMgr : InjectableMonoBehaviour
         GameLogger.LogCyan(configTable.GetConfig<ItemRacastSet>().ItemCt[1001].itemTestList[0].ToString());
         GameLogger.LogGreen(configTable.GetConfig<BuffRacastSet>().EffectCtCt[102].effectVal);
         GameLogger.LogYellow(Lean.Localization.LeanLocalization.GetTranslationText("Title"));//获取key的翻译);
-        await UniTask.DelayFrame(500);
+        await UniTask.DelayFrame(500, cancellationToken: cancellationToken);
         eventCenter.EventTrigger(new StringEventData(CustomEventType.TestEventWithParam,configTable.GetConfig<BuffRacastSet>().GetBuffCt(101,1).buffName));
         eventCenter.EventTrigger(CustomEventType.TestEventWithoutParam);
         uiManager.Init(uiCamera);
-        uiManager.OpenPanel<AUIPanel>();
+        await uiManager.OpenPanelAsync<AUIPanel>();
         builder.Repeat(3)
             .Sequence()
                 .DebugNode("Ok,")//由于动作节点不进栈，所以不用Back

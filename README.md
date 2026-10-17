@@ -10,7 +10,7 @@
 6. 无限滚动列表解决方案
 7. 对话系统
 8. 红点系统
-9. HyBird 热更框架下使用 AA 进行资源管理和脚本热更方案（待实现，后续需要把通用系统拆到主程序集，分出热更程序集）
+9. HybridCLR + Addressables 热更接入：主程序集/业务程序集分离、资源更新、DLL 与 AOT 元数据导出（[接入和发布说明](Docs/HotUpdate.md)）
 10. 基于 UnityWebRequest 的 Http 网络通信框架
 11. Proto 序列化器
 12. 基于 Lean Localization 的多语言解决方案

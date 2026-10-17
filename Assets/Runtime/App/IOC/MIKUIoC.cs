@@ -5,7 +5,7 @@ using System.Reflection;
 
 namespace MIKUFramework.IOC
 {
-    public class MIKUIoC
+    public class MIKUIoC : IDisposable
     {
         private readonly Dictionary<Type, object> _services = new Dictionary<Type, object>();
 
@@ -137,17 +137,19 @@ namespace MIKUFramework.IOC
             }
         }
 
-        public MIKUIoC(IMIKULogger logger = null)
+        public MIKUIoC(IMIKULogger logger = null, IEnumerable<Assembly> assemblies = null)
         {
             Logger = logger ?? new ConsoleLogger();
             // 扫描所有程序集中打了Component特性的类
-            var types = AppDomain.CurrentDomain.GetAssemblies()
-                .SelectMany(a => a.GetTypes())
-                .Where(t => t.GetCustomAttributes(typeof(ComponentAttribute), true).Length > 0).ToList();
+            var types = (assemblies ?? AppDomain.CurrentDomain.GetAssemblies())
+                .Where(a => !a.IsDynamic).Distinct().SelectMany(GetLoadableTypes)
+                .Where(t => t.IsClass && !t.IsAbstract && !t.ContainsGenericParameters &&
+                            t.GetCustomAttributes(typeof(ComponentAttribute), true).Length > 0).ToList();
 
             // 先进行实例化（包括构造函数的依赖注入）
             while (types.Count > 0)
             {
+                int pendingCount = types.Count;
                 for (var i = 0; i < types.Count; i++)
                 {
                     var type = types[i];
@@ -261,6 +263,9 @@ namespace MIKUFramework.IOC
                     types.RemoveAt(i);
                     i--;
                 }
+                if (types.Count == pendingCount)
+                    throw new InvalidOperationException("IoC 构造依赖缺失或形成循环：" +
+                                                        string.Join(", ", types.Select(t => t.FullName)));
             }
 
             // 运行非侵入式诊断（仅日志，不改变行为）
@@ -286,6 +291,18 @@ namespace MIKUFramework.IOC
                     }
                 }
             }
+        }
+
+        private static IEnumerable<Type> GetLoadableTypes(Assembly assembly)
+        {
+            try { return assembly.GetTypes(); }
+            catch (ReflectionTypeLoadException exception) { return exception.Types.Where(type => type != null); }
+        }
+
+        public void Dispose()
+        {
+            foreach (var service in _services.Values.Distinct().OfType<IDisposable>()) service.Dispose();
+            _services.Clear();
         }
 
         public T GetBean<T>()

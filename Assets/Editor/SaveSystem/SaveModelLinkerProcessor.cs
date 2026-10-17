@@ -9,6 +9,7 @@ using UnityEditor.Build;
 using UnityEditor.Build.Reporting;
 using UnityEditor.Compilation;
 using UnityEditor.UnityLinker;
+using HybridCLR.Editor;
 
 namespace Yuki.SaveSystem.Editor
 {
@@ -21,6 +22,8 @@ namespace Yuki.SaveSystem.Editor
         {
             var playerAssemblies = new HashSet<string>(
                 CompilationPipeline.GetAssemblies(AssembliesType.Player).Select(assembly => assembly.name));
+            // 热更 DLL 会被 HybridCLR 从 AOT 构建移除，不能要求 UnityLinker 保留不存在的程序集。
+            if (SettingsUtil.Enable) playerAssemblies.ExceptWith(SettingsUtil.HotUpdateAssemblyNamesExcludePreserved);
             var models = new HashSet<Type>();
             foreach (var type in TypeCache.GetTypesWithAttribute<TableAttribute>())
             {

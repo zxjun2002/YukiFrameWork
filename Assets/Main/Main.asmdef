@@ -1,0 +1,16 @@
+{
+    "name": "Main",
+    "references": [
+        "UniTask",
+        "UniTask.Linq",
+        "UniTask.Addressables",
+        "Unity.Addressables",
+        "Unity.ResourceManager",
+        "HybridCLR.Runtime",
+        "Unity.ugui",
+        "Unity.TextMeshPro",
+        "LoopScrollRect.Runtime",
+        "Gilzoide.SqliteNet"
+    ],
+    "autoReferenced": true
+}

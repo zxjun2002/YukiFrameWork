@@ -9,10 +9,3 @@ public abstract class BaseEventData
         EventType = eventType;
     }
 }
-
-public enum CustomEventType
-{
-    TestEventWithParam,
-    TestEventWithInt,
-    TestEventWithoutParam
-}

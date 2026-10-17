@@ -2,7 +2,6 @@ using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
 using Google.Protobuf;
 using System.Threading;
-using Yuki;
 
 public interface IHttpModule 
 {
@@ -12,9 +11,9 @@ public interface IHttpModule
     
     public void Init(string url);
     
-    public UniTask<T> Request_Put<T>(int gameReqType, string json) where T : List<GameBase_Rsp>;
+    public UniTask<T> Request_Put<T>(int gameReqType, string json);
     
-    public UniTask<T> Request_Put_Async<T>(int gameReqType, string json) where T : List<GameBase_Rsp>;
+    public UniTask<T> Request_Put_Async<T>(int gameReqType, string json);
 
     public UniTask<T> Request_Post<T>(string path, string json, Dictionary<string, string> headers = null);
     

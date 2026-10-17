@@ -1,7 +1,5 @@
 using System;
-using Domain;
 using MIKUFramework.IOC;
-using Yuki;
 
 namespace MCRogue
 {

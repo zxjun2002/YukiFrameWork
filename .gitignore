@@ -10,6 +10,14 @@
 /[Ll]ogs/
 /[Uu]ser[Ss]ettings/
 
+# Platform-specific HybridCLR output; regenerate from the hot-update build menu.
+/HybridCLRData/
+/Assets/Main/HybridCLRGenerate/
+/Assets/Main/HybridCLRGenerate.meta
+/Assets/HotUpdateAssets/Code/
+/Assets/HotUpdateAssets/Code.meta
+/ServerData/
+
 # MemoryCaptures can get excessive in size.
 # They also could contain extremely sensitive data
 /[Mm]emoryCaptures/

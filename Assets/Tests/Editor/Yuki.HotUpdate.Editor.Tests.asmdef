@@ -1,0 +1,6 @@
+{
+    "name": "Yuki.HotUpdate.Editor.Tests",
+    "references": ["Main", "Runtime", "Config", "Yuki.Editor"],
+    "includePlatforms": ["Editor"],
+    "optionalUnityReferences": ["TestAssemblies"]
+}
