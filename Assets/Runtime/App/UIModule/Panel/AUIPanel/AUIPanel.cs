@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 using System.Linq;
-using Cysharp.Threading.Tasks;
 using Domain;
 using EnhancedUI.EnhancedScroller;
 using MIKUFramework.IOC;
@@ -14,9 +13,6 @@ namespace Yuki
         [Autowired] RedPointRepository redPointRepository;
         [Autowired] HttpAppService httpAppService;
         [Autowired] IUIManager uiManager;
-
-        public float minVelocity = 1000.0f;
-        public float maxVelocity = 10000.0f;
         
         List<UIListItemData> TestUIList_ItemDatas = new List<UIListItemData>();//定义列表项数据List
         private ObjectPool<GameObject> pool;
@@ -30,10 +26,10 @@ namespace Yuki
             base.Init(uiCamera);
         }
 
-        public override async void OnShow(BasePanelArg arg = null)
+        public override void OnShow(BasePanelArg arg = null)
         {
-            base.OnShow();
-            CheckBtn.onClick.AddListener(CheckBtnCallback);
+            base.OnShow(arg);
+            BindUIEvents();
             //最后写入数据并且赋值
             TestUIList_ItemDatas.Clear();
             // for (int i = 0; i < 100; i++)
@@ -46,8 +42,8 @@ namespace Yuki
             //     };
             //     TestUIList_ItemDatas.Add(itemData);
             // }
-            // TestUIList.SetIndexData = SetIndexData_Item;
-            // TestUIList.SetCount(TestUIList_ItemDatas.Count);
+            // TestUIList_UIList.SetIndexData = SetIndexData_Item;
+            // TestUIList_UIList.SetCount(TestUIList_ItemDatas.Count);
             
             // for (int i = 0; i < 100; i++)
             // {
@@ -72,8 +68,8 @@ namespace Yuki
             //     TestUIList_ItemDatas.Add(itemData);
             // }
             //
-            // TestUIListMulti.SetIndexData = SetIndexData_Item;
-            // TestUIListMulti.SetCount(TestUIList_ItemDatas.Count);
+            // TestMultiUIList_UIListMulti.SetIndexData = SetIndexData_Item;
+            // TestMultiUIList_UIListMulti.SetCount(TestUIList_ItemDatas.Count);
             
             // // await httpAppService.SendHttpReq(new Login_RequestHandler(114514, "Yuki"));
             // redPointRepository.Agg.SetCallback(RedPointKey.Play_LEVEL1,Play_LEVELRedDotCallback);
@@ -123,21 +119,19 @@ namespace Yuki
                 },
             };
             // 传入数据
-            scrollerController.SetData(data);
-            //scrollerController.SpinToIndexAsync(2, 2, 2f).Forget();
-            //scrollerController.AddVelocity((UnityEngine.Random.Range(0, 1f) > 0.5f ? 1f : -1f) * UnityEngine.Random.Range(minVelocity, maxVelocity));
+            Scroller_EnhancedScrollerController.SetData(data);
         }
 
         public override void OnClose()
         {
             base.OnClose();
-            CheckBtn.onClick.RemoveListener(CheckBtnCallback);
+            UnbindUIEvents();
             redPointRepository.Agg.DeleteCallback(RedPointKey.Play_LEVEL1, Play_LEVELRedDotCallback);
         }
         #endregion
 
         #region 控件回调
-        void CheckBtnCallback()
+        void CheckBtn_Button_onClick()
         {
             uiManager.ClosePanel<AUIPanel>();
         }
