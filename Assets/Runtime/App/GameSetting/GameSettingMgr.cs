@@ -53,7 +53,7 @@ public class GameSettingMgr : InjectableMonoBehaviour
         eventCenter.EventTrigger(new StringEventData(CustomEventType.TestEventWithParam,configTable.GetConfig<BuffRacastSet>().GetBuffCt(101,1).buffName));
         eventCenter.EventTrigger(CustomEventType.TestEventWithoutParam);
         uiManager.Init(uiCamera);
-        //uiManager.OpenPanel<AUIPanel>();
+        uiManager.OpenPanel<AUIPanel>();
         builder.Repeat(3)
             .Sequence()
                 .DebugNode("Ok,")//由于动作节点不进栈，所以不用Back

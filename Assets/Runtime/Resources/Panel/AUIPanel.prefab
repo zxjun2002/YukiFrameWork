@@ -1605,10 +1605,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 75ba75a68193f4340bb870eadde15ba3, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  minVelocity: 1000
+  maxVelocity: 10000
   NameText_TextMeshProUGUI: {fileID: 791124662930065395}
   CheckBtn_Button: {fileID: 6934896910169101253}
   TestMultiUIList_UIListMulti: {fileID: 6173140329550770395}
   Scroller_EnhancedScrollerController: {fileID: 5474404303366365897}
+  TestImg_Image: {fileID: 6479292926434688000}
+  TestUIList_UIList: {fileID: 8836078908334985882}
 --- !u!1 &6937116438647556923
 GameObject:
   m_ObjectHideFlags: 0

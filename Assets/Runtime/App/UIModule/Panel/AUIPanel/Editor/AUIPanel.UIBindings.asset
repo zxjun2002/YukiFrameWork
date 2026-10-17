@@ -14,26 +14,26 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   panelTypeName: Yuki.AUIPanel
   version: 1
-  rootGlobalId: GlobalObjectId_V1-2-00000000000000000000000000000000-6218080800215192031-0
-  rootInstanceId: 32230
-  rootSessionId: e703147f7a8e4fcb9cea2d852d6f7952
+  rootGlobalId: GlobalObjectId_V1-1-1cd14d044e539c24094928f7bbb42683-6218080800215192031-0
+  rootInstanceId: 0
+  rootSessionId: 
   needsGeneration: 0
   entries:
   - key: be74cb98f4de4a138ed290b3a6fe0626
     fieldName: NameText_TextMeshProUGUI
     componentType: TextMeshProUGUI
-    sourceGlobalId: GlobalObjectId_V1-2-00000000000000000000000000000000-8628542165707531947-0
-    sourceInstanceId: 32280
-    sourceSessionId: e703147f7a8e4fcb9cea2d852d6f7952
+    sourceGlobalId: GlobalObjectId_V1-1-1cd14d044e539c24094928f7bbb42683-8628542165707531947-0
+    sourceInstanceId: 0
+    sourceSessionId: 
     active: 1
     pendingReference: 0
     events: []
   - key: 9260c0d7acf04cd7861998262ca77a9a
     fieldName: CheckBtn_Button
     componentType: Button
-    sourceGlobalId: GlobalObjectId_V1-2-00000000000000000000000000000000-960689172801429582-0
-    sourceInstanceId: 32124
-    sourceSessionId: e703147f7a8e4fcb9cea2d852d6f7952
+    sourceGlobalId: GlobalObjectId_V1-1-1cd14d044e539c24094928f7bbb42683-960689172801429582-0
+    sourceInstanceId: 0
+    sourceSessionId: 
     active: 1
     pendingReference: 0
     events:
@@ -43,25 +43,25 @@ MonoBehaviour:
   - key: fe50e87f5207424088565bd44ec395b9
     fieldName: TestMultiUIList_UIListMulti
     componentType: UIListMulti
-    sourceGlobalId: GlobalObjectId_V1-2-00000000000000000000000000000000-3160575328980250822-0
-    sourceInstanceId: 32166
-    sourceSessionId: e703147f7a8e4fcb9cea2d852d6f7952
+    sourceGlobalId: GlobalObjectId_V1-1-1cd14d044e539c24094928f7bbb42683-3160575328980250822-0
+    sourceInstanceId: 0
+    sourceSessionId: 
     active: 1
     pendingReference: 0
     events: []
   - key: c620074f21234e91b372bf2fdab40581
     fieldName: Scroller_EnhancedScrollerController
     componentType: EnhancedScrollerController
-    sourceGlobalId: GlobalObjectId_V1-2-00000000000000000000000000000000-3062624133169742897-0
-    sourceInstanceId: 32160
-    sourceSessionId: e703147f7a8e4fcb9cea2d852d6f7952
+    sourceGlobalId: GlobalObjectId_V1-1-1cd14d044e539c24094928f7bbb42683-3062624133169742897-0
+    sourceInstanceId: 0
+    sourceSessionId: 
     active: 1
     pendingReference: 0
     events: []
   - key: 60b6d867df944d0ebe169844d922deb3
     fieldName: TestToggle_Toggle
     componentType: Toggle
-    sourceGlobalId: GlobalObjectId_V1-2-00000000000000000000000000000000-3273730585090639392-0
+    sourceGlobalId: GlobalObjectId_V1-1-1cd14d044e539c24094928f7bbb42683-3273730585090639392-0
     sourceInstanceId: 0
     sourceSessionId: 
     active: 0
@@ -70,3 +70,21 @@ MonoBehaviour:
     - eventName: onValueChanged
       methodName: TestToggle_Toggle_onValueChanged
       enabled: 1
+  - key: 98b1c019cb7c487bb1c509911a689c58
+    fieldName: TestImg_Image
+    componentType: Image
+    sourceGlobalId: GlobalObjectId_V1-1-1cd14d044e539c24094928f7bbb42683-6937116438647556923-0
+    sourceInstanceId: 0
+    sourceSessionId: 
+    active: 1
+    pendingReference: 0
+    events: []
+  - key: 8252640f9d174c698ecb734f543f7703
+    fieldName: TestUIList_UIList
+    componentType: UIList
+    sourceGlobalId: GlobalObjectId_V1-1-1cd14d044e539c24094928f7bbb42683-1704407453160636762-0
+    sourceInstanceId: 0
+    sourceSessionId: 
+    active: 1
+    pendingReference: 0
+    events: []
