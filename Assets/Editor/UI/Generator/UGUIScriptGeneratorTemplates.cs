@@ -1,0 +1,226 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Text.RegularExpressions;
+
+internal sealed partial class UGUIScriptGeneratorContext
+{
+    internal const string CALLBACKS_REGION_TAG = "[控件回调](自动补全)";
+    internal const string BIND_FILE_MARKER = "// UGUI_BINDINGS_GENERATED: 仅包含自动绑定代码，请勿手动修改。";
+
+    internal Dictionary<string, string> BuildEventScriptContents(string bindFilePath, string className, List<UIElement> elements)
+    {
+        string folder = Path.GetDirectoryName(bindFilePath);
+        string panelPath = Path.Combine(folder, className + ".cs");
+        string oldBind = File.Exists(bindFilePath) ? File.ReadAllText(bindFilePath) : "";
+        string panel = File.Exists(panelPath) ? File.ReadAllText(panelPath) : GeneratePanelScriptContent(className);
+        string panelText = string.Join("\n", Directory.GetFiles(folder, "*.cs").Select(File.ReadAllText));
+        var scripts = new Dictionary<string, string>();
+
+        if (!string.IsNullOrEmpty(oldBind) && !oldBind.Contains(BIND_FILE_MARKER))
+        {
+            // 保留旧回调及其他手写成员，迁入主业务类。
+            FindRegionBody(oldBind, CALLBACKS_REGION_TAG);
+            string migrated = RemoveRegion(oldBind, "自动绑定（生成器维护）")
+                .Replace("//按照region定位回调位置，禁止删除#region或修改", "// 已迁移的 UI 回调，可自由调整位置。");
+            panel = UGUIScriptGeneratorSource.MergeLegacyMembers(panel, migrated, className);
+        }
+
+        // 查找同目录所有 partial 文件里的实现，回调可放在任意业务 region 中。
+        string missing = AppendMissingCallbackStubs("", panelText, elements);
+        panel = UGUIScriptGeneratorSource.AppendMembers(panel, className, missing);
+
+        scripts[panelPath] = panel;
+        scripts[bindFilePath] = GenerateBindFileFullText(className, elements);
+        return scripts;
+    }
+
+    internal static string RemoveRegion(string source, string tag)
+    {
+        var body = FindRegionBody(source, tag);
+        var start = Regex.Match(source, RegionStartPattern(tag), RegexOptions.Multiline);
+        int endStart = body.Item1 + body.Item2;
+        var end = Regex.Match(source.Substring(endStart), @"^[ \t]*#endregion[^\r\n]*(?:\r\n|\n|\r|$)");
+        return source.Remove(start.Index, endStart + end.Length - start.Index);
+    }
+
+    internal static string RegionStartPattern(string tag) => @"^[ \t]*#region[ \t]*" + Regex.Escape(tag) + @"[ \t]*\r?$";
+
+    internal static Tuple<int, int> FindRegionBody(string source, string tag)
+    {
+        var start = Regex.Match(source, RegionStartPattern(tag), RegexOptions.Multiline);
+        if (!start.Success) throw new InvalidOperationException($"找不到 #region{tag}，请恢复区域标记后再生成。旧脚本未被覆盖。");
+        int bodyStart = start.Index + start.Length;
+        if (bodyStart < source.Length && source[bodyStart] == '\n') bodyStart++;
+        int depth = 1;
+        foreach (Match directive in Regex.Matches(source.Substring(bodyStart), @"^[ \t]*#(?<kind>region|endregion)\b[^\r\n]*", RegexOptions.Multiline))
+        {
+            depth += directive.Groups["kind"].Value == "region" ? 1 : -1;
+            if (depth == 0) return Tuple.Create(bodyStart, directive.Index);
+        }
+        throw new InvalidOperationException($"#region{tag} 缺少 #endregion，旧脚本未被覆盖。");
+    }
+
+    internal string AppendMissingCallbackStubs(string callbacksBlock, string panelText, List<UIElement> elements)
+    {
+        string merged = callbacksBlock ?? "";
+
+        foreach (var e in elements)
+        {
+            if (e == null || e.uiObject == null) continue;
+
+            foreach (var callback in e.events.Where(callback => callback.enabled))
+            {
+                var descriptor = GetEventDescriptor(e, callback);
+                if (UGUIScriptGeneratorEvents.ContainsMethod(panelText, callback.methodName) ||
+                    UGUIScriptGeneratorEvents.ContainsMethod(merged, callback.methodName)) continue;
+
+                if (merged.Length > 0 && !merged.EndsWith("\n")) merged += "\n";
+                merged += $"        void {callback.methodName}({descriptor.Parameters})\n";
+                merged += "        {\n";
+                merged += "            // TODO: Add your logic here\n";
+                merged += "        }\n";
+            }
+        }
+
+        return merged;
+    }
+
+    internal static UGUIEventDescriptor GetEventDescriptor(UIElement element, UGUIEventBinding callback)
+    {
+        var descriptor = UGUIScriptGeneratorEvents.GetEvents(GetSelectedComponentTypeFromObject(element))
+            .FirstOrDefault(candidate => candidate.name == callback.eventName);
+        if (descriptor == null)
+            throw new InvalidOperationException($"{element.fieldName} 不再提供事件 {callback.eventName}，请取消该监听后重试。");
+        return descriptor;
+    }
+
+    internal string GenerateBindFileFullText(string className, List<UIElement> elements)
+    {
+        var sb = new System.Text.StringBuilder();
+
+        sb.AppendLine("// <auto-generated>");
+        sb.AppendLine(BIND_FILE_MARKER);
+        sb.AppendLine("// </auto-generated>");
+        sb.AppendLine("using UnityEngine;");
+        sb.AppendLine("using UnityEngine.UI;");
+        sb.AppendLine();
+        if (!string.IsNullOrEmpty(NameSpaceName))
+        {
+            sb.AppendLine($"namespace {NameSpaceName}");
+            sb.AppendLine("{");
+        }
+        sb.AppendLine($"    public partial class {className}");
+        sb.AppendLine("    {");
+
+        sb.AppendLine("        #region 自动绑定（生成器维护）");
+        sb.AppendLine("        internal bool _uiEventsBound;");
+        sb.AppendLine();
+        sb.AppendLine("        internal void BindUIEvents()");
+        sb.AppendLine("        {");
+        sb.AppendLine("            if (_uiEventsBound) return;");
+        sb.AppendLine("            _uiEventsBound = true;");
+        sb.AppendLine();
+
+        foreach (var e in elements)
+        {
+            if (e == null || e.uiObject == null) continue;
+
+            foreach (var callback in e.events.Where(callback => callback.enabled))
+                sb.AppendLine($"            if ({e.fieldName} != null) {e.fieldName}.{callback.eventName}?.AddListener({callback.methodName});");
+        }
+
+        sb.AppendLine("        }");
+        sb.AppendLine();
+        sb.AppendLine("        internal void UnbindUIEvents()");
+        sb.AppendLine("        {");
+        sb.AppendLine("            if (!_uiEventsBound) return;");
+        sb.AppendLine("            _uiEventsBound = false;");
+        sb.AppendLine();
+
+        foreach (var e in elements)
+        {
+            if (e == null || e.uiObject == null) continue;
+
+            foreach (var callback in e.events.Where(callback => callback.enabled))
+                sb.AppendLine($"            if ({e.fieldName} != null) {e.fieldName}.{callback.eventName}?.RemoveListener({callback.methodName});");
+        }
+
+        sb.AppendLine("        }");
+        sb.AppendLine("        #endregion");
+        sb.AppendLine("    }");
+        if (!string.IsNullOrEmpty(NameSpaceName)) sb.AppendLine("}");
+        return sb.ToString();
+    }
+
+    // -------------------- View.cs / Panel.cs --------------------
+
+    internal string GenerateViewScriptContent(string className, List<UIElement> elements)
+    {
+        var sb = new System.Text.StringBuilder();
+        var fields = elements.Where(element => element != null && element.uiObject != null)
+            .Select(element => new { Element = element, Type = GetSelectedComponentTypeFromObject(element) }).ToList();
+        var namespaces = new SortedSet<string>(StringComparer.Ordinal) { "UnityEngine", "UnityEngine.UI", "TMPro" };
+        foreach (var field in fields)
+        {
+            if (field.Type == null)
+                throw new InvalidOperationException($"{field.Element.uiObject.name} 缺少组件 {field.Element.selectedComponentType}。");
+            namespaces.UnionWith(UGUIScriptGeneratorEvents.TypeNamespaces(field.Type));
+        }
+
+        foreach (string value in namespaces) sb.AppendLine($"using {value};");
+        sb.AppendLine();
+        if (!string.IsNullOrEmpty(NameSpaceName))
+        {
+            sb.AppendLine($"namespace {NameSpaceName}");
+            sb.AppendLine("{");
+        }
+        sb.AppendLine($"    public partial class {className}");
+        sb.AppendLine("    {");
+
+        foreach (var field in fields)
+        {
+            bool shortName = UGUIScriptGeneratorEvents.CanUseShortTypeName(field.Type, namespaces, NameSpaceName, className);
+            string componentType = UGUIScriptGeneratorEvents.TypeName(field.Type, shortName);
+            sb.AppendLine($"        [SerializeField] private {componentType} {field.Element.fieldName};");
+        }
+
+        sb.AppendLine("    }");
+        if (!string.IsNullOrEmpty(NameSpaceName)) sb.AppendLine("}");
+        return sb.ToString();
+    }
+
+    internal string GeneratePanelScriptContent(string className)
+    {
+        var sb = new System.Text.StringBuilder();
+
+        sb.AppendLine("using UnityEngine;");
+        sb.AppendLine();
+        if (!string.IsNullOrEmpty(NameSpaceName))
+        {
+            sb.AppendLine($"namespace {NameSpaceName}");
+            sb.AppendLine("{");
+        }
+        sb.AppendLine($"    public partial class {className} : BasePanel");
+        sb.AppendLine("    {");
+        sb.AppendLine("        #region 生命周期");
+        sb.AppendLine("        public override void OnShow(BasePanelArg arg = null)");
+        sb.AppendLine("        {");
+        sb.AppendLine("            base.OnShow(arg);");
+        sb.AppendLine("            BindUIEvents();");
+        sb.AppendLine("        }");
+        sb.AppendLine();
+        sb.AppendLine("        public override void OnClose()");
+        sb.AppendLine("        {");
+        sb.AppendLine("            UnbindUIEvents();");
+        sb.AppendLine("            base.OnClose();");
+        sb.AppendLine("        }");
+        sb.AppendLine("        #endregion");
+        sb.AppendLine("    }");
+        if (!string.IsNullOrEmpty(NameSpaceName)) sb.AppendLine("}");
+        return sb.ToString();
+    }
+
+    // -------------------- Root / DragDrop --------------------
+}
